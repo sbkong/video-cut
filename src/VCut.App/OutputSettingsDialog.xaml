@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="VCut.App.OutputSettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="출력 설정"
+    PrimaryButtonText="시작"
+    CloseButtonText="취소"
+    DefaultButton="Primary">
+
+    <StackPanel Spacing="14" Width="380">
+        <!-- 출력 방식 -->
+        <StackPanel Spacing="6">
+            <TextBlock Text="출력 방식" FontWeight="SemiBold" />
+            <ToggleSwitch IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}" OnContent="고속 모드 (화질 저하 없는 빠른 작업)" OffContent="변환 모드 (재인코딩)" />
+        </StackPanel>
+
+        <!-- 변환 모드 상세 -->
+        <StackPanel Spacing="8" Visibility="{x:Bind VM.IsFastMode, Mode=OneWay, Converter={StaticResource NotConverter}}">
+            <ComboBox Header="파일 형식" SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                <ComboBoxItem Content="MP4" /><ComboBoxItem Content="MKV" /><ComboBoxItem Content="WebM (VP9)" /><ComboBoxItem Content="AVI" />
+            </ComboBox>
+            <Slider Header="품질 (낮을수록 용량↓)" Minimum="10" Maximum="100" Value="{x:Bind VM.Quality, Mode=TwoWay}" />
+            <Slider Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)" Minimum="0.1" Maximum="16" StepFrequency="0.1" Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}" />
+        </StackPanel>
+
+        <!-- 옵션 -->
+        <StackPanel Spacing="6">
+            <TextBlock Text="옵션" FontWeight="SemiBold" />
+            <CheckBox Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}" />
+            <CheckBox Content="재생 시간 정보를 텍스트(txt) 파일로 저장하기" IsChecked="{x:Bind VM.WritePlaybackInfo, Mode=TwoWay}" />
+            <CheckBox Content="오디오 트랙 추출하기 (.mp3)" IsChecked="{x:Bind VM.ExtractAudioOnly, Mode=TwoWay}" />
+            <CheckBox Content="오디오 트랙 제거하기" IsChecked="{x:Bind VM.RemoveAudio, Mode=TwoWay}" />
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

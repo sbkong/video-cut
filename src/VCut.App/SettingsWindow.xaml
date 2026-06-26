@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="VCut.App.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="Root" RowDefinitions="*,Auto" Padding="16">
+        <Pivot Grid.Row="0">
+
+            <!-- 일반 -->
+            <PivotItem Header="일반">
+                <ScrollViewer>
+                    <StackPanel Spacing="8">
+                        <CheckBox Content="탐색 불가능한 영상인 경우 알림" IsChecked="{x:Bind S.WarnUnseekable, Mode=TwoWay}" />
+                        <CheckBox Content="저장 폴더에 이미 파일이 있는 경우 알림" IsChecked="{x:Bind S.WarnFileExists, Mode=TwoWay}" />
+                        <CheckBox Content="프로젝트 저장 메시지 표시" IsChecked="{x:Bind S.ShowProjectSaveMessage, Mode=TwoWay}" />
+                        <CheckBox Content="작업 완료 후 저장 폴더 열기" IsChecked="{x:Bind S.OpenFolderAfterDone, Mode=TwoWay}" />
+                        <CheckBox Content="로그 파일 생성하기(.log)" IsChecked="{x:Bind S.CreateLogFile, Mode=TwoWay}" />
+                        <CheckBox Content="영상 정보(MOOV)를 파일 앞부분에 저장(MP4 전용)" IsChecked="{x:Bind S.MoovAtFront, Mode=TwoWay}" />
+                        <CheckBox Content="파일 생성 시간 정보 유지하기" IsChecked="{x:Bind S.KeepCreationTime, Mode=TwoWay}" />
+                        <CheckBox Content="팁/정보 보이기" IsChecked="{x:Bind S.ShowTips, Mode=TwoWay}" />
+                        <CheckBox Content="구간 미세 조정 숫자 입력 시 커서 자동 이동" IsChecked="{x:Bind S.AutoAdvanceCursor, Mode=TwoWay}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </PivotItem>
+
+            <!-- 재생 -->
+            <PivotItem Header="재생">
+                <StackPanel Spacing="8">
+                    <CheckBox Content="재생 불가능한 영상인 경우 알림" IsChecked="{x:Bind S.WarnUnplayable, Mode=TwoWay}" />
+                    <CheckBox Content="재생 시 디인터레이스 적용(인터레이스 영상만)" IsChecked="{x:Bind S.DeinterlaceOnPlay, Mode=TwoWay}" />
+                    <CheckBox Content="재생 시 하드웨어 렌더러 사용(개선된 화질)" IsChecked="{x:Bind S.HardwareRenderer, Mode=TwoWay}" />
+                    <CheckBox Content="하드웨어 디코더 사용" IsChecked="{x:Bind S.UseHardwareDecoder, Mode=TwoWay}" />
+                    <TextBlock Text="※ 재생 관련 항목은 미리보기 동작에 점진 반영됩니다." FontSize="11.5" Opacity="0.7" />
+                </StackPanel>
+            </PivotItem>
+
+            <!-- 파일 -->
+            <PivotItem Header="파일">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="저장 폴더" FontWeight="SemiBold" />
+                    <RadioButton x:Name="SameFolderRadio" Content="원본 파일과 같은 위치에 저장" GroupName="savefolder" />
+                    <RadioButton x:Name="CustomFolderRadio" Content="지정한 폴더에 저장" GroupName="savefolder" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" x:Name="SaveFolderBox" PlaceholderText="저장 폴더 경로" />
+                        <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseSaveFolder" />
+                    </Grid>
+                    <TextBlock Text="임시 파일 폴더(Cache)" FontWeight="SemiBold" Margin="0,8,0,0" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" x:Name="TempFolderBox" PlaceholderText="비우면 시스템 임시 폴더" />
+                        <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseTempFolder" />
+                    </Grid>
+                </StackPanel>
+            </PivotItem>
+
+            <!-- 언어 -->
+            <PivotItem Header="언어">
+                <StackPanel Spacing="10">
+                    <ComboBox Header="언어" x:Name="LanguageCombo" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="한국어" Tag="ko" />
+                        <ComboBoxItem Content="English" Tag="en" />
+                        <ComboBoxItem Content="日本語" Tag="ja" />
+                    </ComboBox>
+                    <TextBlock Text="※ 언어 변경은 다음 버전에서 적용됩니다(현재 보존만)." FontSize="11.5" Opacity="0.7" />
+                </StackPanel>
+            </PivotItem>
+
+            <!-- 고속 모드 -->
+            <PivotItem Header="고속 모드">
+                <StackPanel Spacing="8">
+                    <CheckBox Content="고속 모드가 불가능한 경우 알림" IsChecked="{x:Bind S.WarnFastUnavailable, Mode=TwoWay}" />
+                    <CheckBox Content="항상 키프레임 단위로 고속 모드 사용" IsChecked="{x:Bind S.AlwaysKeyframe, Mode=TwoWay}" />
+                    <CheckBox Content="고속 모드에서 시작위치가 달라지는 경우 알림" IsChecked="{x:Bind S.WarnStartShift, Mode=TwoWay}" />
+                    <CheckBox Content="고속 모드 합치기 허용 조건 완화" IsChecked="{x:Bind S.RelaxFastMerge, Mode=TwoWay}" />
+                    <TextBlock Text="기본 하드웨어 가속(변환 인코더)" FontWeight="SemiBold" Margin="0,8,0,0" />
+                    <ComboBox x:Name="HwCombo" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="사용 안 함(소프트웨어)" />
+                        <ComboBoxItem Content="NVIDIA NVENC" />
+                        <ComboBoxItem Content="Intel QuickSync" />
+                        <ComboBoxItem Content="AMD AMF" />
+                    </ComboBox>
+                </StackPanel>
+            </PivotItem>
+        </Pivot>
+
+        <!-- 하단 버튼 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+            <Button Content="초기화" Click="OnReset" />
+            <Button Content="취소" Click="OnCancel" />
+            <Button Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>12</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+
+    <!-- NuGet 배포 메타데이터 -->
+    <PackageId>VCut.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>v-cut</Authors>
+    <Description>FFmpeg 기반 동영상 편집 엔진 (자르기/나누기/합치기/변환/배속/mp3추출). 단독 실행 앱과 외부 .NET 프로그램에서 모듈로 사용.</Description>
+    <PackageTags>video;ffmpeg;editing;trim;merge;convert</PackageTags>
+  </PropertyGroup>
+
+</Project>
