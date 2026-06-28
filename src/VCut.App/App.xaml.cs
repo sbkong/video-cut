@@ -4,14 +4,17 @@ namespace VCut.App;
 
 public partial class App : Application
 {
-    private Window? _window;
+    public static MainWindow? MainWindow { get; private set; }
 
     public App() => InitializeComponent();
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         Settings.SettingsStore.Load();
-        _window = new MainWindow();
-        _window.Activate();
+        MainWindow = new MainWindow();
+        // 저장된 테마를 메인 창 콘텐츠에 즉시 적용 (기본값이 Dark이므로 Light일 때만 실질적으로 바뀜)
+        if (MainWindow.Content is FrameworkElement root)
+            ThemeService.Apply(Settings.SettingsStore.Current.Theme, root);
+        MainWindow.Activate();
     }
 }

@@ -32,4 +32,10 @@
     <ProjectReference Include="..\VCut.Controls\VCut.Controls.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Assets\Fonts\JetBrainsMono-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

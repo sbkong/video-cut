@@ -5,34 +5,20 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctl="using:VCut.Controls"
     xmlns:vm="using:VCut.App.ViewModels"
+    xmlns:conv="using:VCut.App.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}">
+    <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}" KeyboardAcceleratorPlacementMode="Hidden">
 
         <!-- ════════ 상단 타이틀 스트립 ════════ -->
         <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,Auto,*,Auto">
-            <Button Grid.Column="0" Style="{StaticResource GlyphButtonStyle}" Click="OnMenuClick"
-                    Margin="4,0,0,0" ToolTipService.ToolTip="메뉴">
-                <FontIcon Glyph="&#xE700;" FontSize="16" />
-            </Button>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="6,0">
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="12,0">
                 <TextBlock Text="v-cut" FontSize="17" FontWeight="Bold" Foreground="{StaticResource BcTextBrush}" />
                 <Border Background="{StaticResource BcAccentBrush}" CornerRadius="3" Padding="5,1" VerticalAlignment="Center">
                     <TextBlock Text="PERSONAL" FontSize="9" FontWeight="SemiBold" Foreground="White" />
                 </Border>
-            </StackPanel>
-            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0">
-                <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.OpenProjectCommand}" ToolTipService.ToolTip="프로젝트 열기">
-                    <FontIcon Glyph="&#xE8B7;" FontSize="14" />
-                </Button>
-                <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.SaveProjectCommand}" ToolTipService.ToolTip="프로젝트 저장">
-                    <FontIcon Glyph="&#xE74E;" FontSize="14" />
-                </Button>
-                <Button Style="{StaticResource GlyphButtonStyle}" Click="OnOpenSettings" ToolTipService.ToolTip="환경 설정 (F5)">
-                    <FontIcon Glyph="&#xE713;" FontSize="14" />
-                </Button>
             </StackPanel>
         </Grid>
 
@@ -57,7 +43,8 @@
             <Grid x:Name="EditGrid" Grid.Column="1" ColumnDefinitions="340,*">
 
                 <!-- 구간 목록 패널 -->
-                <Grid Grid.Column="0" Background="{StaticResource BcPanelBrush}" RowDefinitions="Auto,*,Auto" Padding="12">
+                <Grid Grid.Column="0" Background="{StaticResource BcPanelBrush}" RowDefinitions="Auto,*,Auto" Padding="12"
+                      AllowDrop="True" DragOver="OnSegmentListDragOver" Drop="OnSegmentListDrop">
                     <Grid Grid.Row="0" Margin="0,0,0,8">
                         <TextBlock x:Name="ListTitle" Text="자르기 구간 목록" FontWeight="SemiBold" Foreground="{StaticResource BcTextBrush}" />
                         <TextBlock Foreground="{StaticResource BcTextSecondaryBrush}" FontSize="12" HorizontalAlignment="Right">
@@ -80,9 +67,14 @@
                         </Border>
 
                         <ListView x:Name="SegmentList" ItemsSource="{x:Bind VM.Segments}"
-                                  SelectedItem="{x:Bind VM.SelectedSegment, Mode=TwoWay}"
                                   Visibility="{x:Bind VM.HasSegments, Mode=OneWay}"
-                                  SelectionMode="Single" Background="Transparent">
+                                  SelectionMode="Extended" Background="Transparent"
+                                  CanReorderItems="True" AllowDrop="True"
+                                  SelectionChanged="OnSegmentListSelectionChanged"
+                                  PointerPressed="OnSegmentListPointerPressed"
+                                  PointerReleased="OnSegmentListPointerReleased"
+                                  DragItemsStarting="OnDragItemsStarting"
+                                  DragItemsCompleted="OnDragItemsCompleted">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
                                     <Setter Property="Padding" Value="0" />
@@ -92,28 +84,36 @@
                             </ListView.ItemContainerStyle>
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ClipSegment">
-                                    <Border Style="{StaticResource SegmentCardStyle}">
-                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                            <!-- 번호 + 길이 배지 -->
-                                            <Border Grid.Column="0" Width="56" Height="42" CornerRadius="4"
-                                                    Background="{StaticResource BcPanelDarkBrush}">
-                                                <Grid>
-                                                    <TextBlock Text="{x:Bind DisplayIndex}" FontWeight="Bold" FontSize="16"
-                                                               Foreground="{StaticResource BcTextBrush}"
-                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                    <Border Background="#AA000000" CornerRadius="0,0,4,4" VerticalAlignment="Bottom" Padding="2,0">
-                                                        <TextBlock Text="{x:Bind DurationText}" FontSize="9" Foreground="White" HorizontalAlignment="Center" />
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                                <TextBlock Text="{x:Bind FileName}" Foreground="{StaticResource BcTextBrush}"
-                                                           FontSize="13" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{x:Bind RangeText, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
-                                                           FontSize="11.5" FontFamily="Consolas" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
+                                    <Grid>
+                                        <Border Style="{StaticResource SegmentCardStyle}">
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                <!-- 번호 + 길이 배지 -->
+                                                <Border Grid.Column="0" Width="56" Height="42" CornerRadius="4"
+                                                        Background="{StaticResource BcPanelDarkBrush}">
+                                                    <Grid>
+                                                        <TextBlock Text="{x:Bind DisplayIndex}" FontWeight="Bold" FontSize="16"
+                                                                   Foreground="{StaticResource BcTextBrush}"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        <Border Background="#AA000000" CornerRadius="0,0,4,4" VerticalAlignment="Bottom" Padding="2,0">
+                                                            <TextBlock Text="{x:Bind DurationText}" FontSize="9" Foreground="White" HorizontalAlignment="Center" />
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                                    <TextBlock Text="{x:Bind FileName}" Foreground="{StaticResource BcTextBrush}"
+                                                               FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{x:Bind RangeText, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                               FontSize="11.5" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <!-- 선택 표시 링 -->
+                                        <Border BorderBrush="{ThemeResource SystemAccentColorLight2}"
+                                                BorderThickness="2"
+                                                CornerRadius="5"
+                                                IsHitTestVisible="False"
+                                                Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" />
+                                    </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
@@ -124,57 +124,60 @@
                         <Button Grid.Column="0" Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.RemoveSelectedClipCommand}" ToolTipService.ToolTip="구간 삭제"><FontIcon Glyph="&#xE74D;" FontSize="13" /></Button>
                         <Button Grid.Column="1" Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.MoveClipUpCommand}" ToolTipService.ToolTip="위로"><FontIcon Glyph="&#xE70E;" FontSize="13" /></Button>
                         <Button Grid.Column="2" Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.MoveClipDownCommand}" ToolTipService.ToolTip="아래로"><FontIcon Glyph="&#xE70D;" FontSize="13" /></Button>
-                        <Button Grid.Column="4" Content="구간 추가" Click="OnOpenClick" />
+                        <Button Grid.Column="4" Content="영상 추가" Click="OnOpenClick" />
                     </Grid>
                 </Grid>
 
                 <!-- 미리보기 패널 -->
-                <Grid Grid.Column="1" Background="{StaticResource BcPanelDarkBrush}" RowDefinitions="Auto,*,Auto,Auto,Auto" Padding="12">
+                <Grid Grid.Column="1" Background="{StaticResource BcPanelDarkBrush}" RowDefinitions="Auto,*,Auto,Auto" Padding="12">
                     <!-- 헤더 -->
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,Auto,*,Auto" Margin="0,0,0,8">
-                        <Button Grid.Column="0" Style="{StaticResource GlyphButtonStyle}" Click="OnOpenSettings" ToolTipService.ToolTip="환경 설정"><FontIcon Glyph="&#xE713;" FontSize="14" /></Button>
-                        <Button Grid.Column="1" Style="{StaticResource GlyphButtonStyle}" Click="OnOpenClick" ToolTipService.ToolTip="파일 열기"><FontIcon Glyph="&#xE8E5;" FontSize="14" /></Button>
-                        <Button Grid.Column="2" Style="{StaticResource GlyphButtonStyle}" ToolTipService.ToolTip="회전 / 반전">
-                            <FontIcon Glyph="&#xE7AD;" FontSize="14" />
-                            <Button.Flyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="90° 회전" Command="{x:Bind VM.RunRotateCommand}" CommandParameter="90" />
-                                    <MenuFlyoutItem Text="180° 회전" Command="{x:Bind VM.RunRotateCommand}" CommandParameter="180" />
-                                    <MenuFlyoutItem Text="270° 회전" Command="{x:Bind VM.RunRotateCommand}" CommandParameter="270" />
-                                    <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="좌우 반전" Command="{x:Bind VM.RunRotateCommand}" CommandParameter="hflip" />
-                                    <MenuFlyoutItem Text="상하 반전" Command="{x:Bind VM.RunRotateCommand}" CommandParameter="vflip" />
-                                </MenuFlyout>
-                            </Button.Flyout>
-                        </Button>
-                        <TextBlock Grid.Column="3" Text="{x:Bind VM.MediaSummary, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+                            <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.ApplyTransformCommand}" CommandParameter="none"  ToolTipService.ToolTip="초기화 (회전/반전 없음)"><FontIcon Glyph="&#xE777;" FontSize="14" /></Button>
+                            <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.ApplyTransformCommand}" CommandParameter="90"    ToolTipService.ToolTip="90° 회전"><FontIcon Glyph="&#xE7AD;" FontSize="14" /></Button>
+                            <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.ApplyTransformCommand}" CommandParameter="hflip" ToolTipService.ToolTip="좌우 반전">
+                                <FontIcon FontFamily="Segoe UI Symbol" Glyph="&#x2194;" FontSize="16" Width="16" Height="16" />
+                            </Button>
+                            <Button Style="{StaticResource GlyphButtonStyle}" Command="{x:Bind VM.ApplyTransformCommand}" CommandParameter="vflip" ToolTipService.ToolTip="상하 반전">
+                                <FontIcon FontFamily="Segoe UI Symbol" Glyph="&#x2195;" FontSize="16" Width="16" Height="16" />
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{x:Bind VM.MediaSummary, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                        <Button Grid.Column="4" Style="{StaticResource GlyphButtonStyle}" Click="OnCaptureClick" ToolTipService.ToolTip="화면 캡처(PNG)"><FontIcon Glyph="&#xE722;" FontSize="14" /></Button>
+                        <Button Grid.Column="2" Style="{StaticResource GlyphButtonStyle}" Click="OnCaptureClick" ToolTipService.ToolTip="화면 캡처(PNG)"><FontIcon Glyph="&#xE722;" FontSize="14" /></Button>
                     </Grid>
 
-                    <!-- 미리보기 -->
-                    <ctl:VideoPreview x:Name="Preview" Grid.Row="1" />
-
-                    <!-- 타임라인 -->
-                    <ctl:TimelineRangeBar x:Name="Timeline" Grid.Row="2" Margin="0,8,0,2"
-                                          Duration="{x:Bind VM.MediaDuration, Mode=OneWay}"
-                                          Start="{x:Bind VM.TrimStart, Mode=TwoWay}"
-                                          End="{x:Bind VM.TrimEnd, Mode=TwoWay}"
-                                          Position="{x:Bind VM.PlayPosition, Mode=OneWay}"
-                                          SeekRequested="OnTimelineSeek" />
+                    <!-- 미리보기 (통합 탐색+구간 바 내장) -->
+                    <ctl:VideoPreview x:Name="Preview" Grid.Row="1"
+                                      Duration="{x:Bind VM.MediaDuration, Mode=OneWay}"
+                                      TrimStart="{x:Bind VM.TrimStart, Mode=TwoWay}"
+                                      TrimEnd="{x:Bind VM.TrimEnd, Mode=TwoWay}"
+                                      VideoRotation="{x:Bind VM.VideoRotation, Mode=OneWay}"
+                                      FlipH="{x:Bind VM.FlipH, Mode=OneWay}"
+                                      FlipV="{x:Bind VM.FlipV, Mode=OneWay}" />
 
                     <!-- 구간 미세조정 -->
-                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,Auto,16,Auto,Auto,Auto,*" ColumnSpacing="5" Margin="0,4,0,0">
-                        <TextBlock Grid.Column="0" Text="시작" VerticalAlignment="Center" Foreground="{StaticResource BcTextSecondaryBrush}" FontSize="12" />
-                        <ctl:TimeCodeBox Grid.Column="1" Time="{x:Bind VM.TrimStart, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
-                        <Button Grid.Column="2" Content="S" Click="OnSetStartToCurrent" ToolTipService.ToolTip="현재 위치를 시작으로" />
-                        <TextBlock Grid.Column="4" Text="끝" VerticalAlignment="Center" Foreground="{StaticResource BcTextSecondaryBrush}" FontSize="12" />
-                        <ctl:TimeCodeBox Grid.Column="5" Time="{x:Bind VM.TrimEnd, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
-                        <Button Grid.Column="6" Content="E" Click="OnSetEndToCurrent" ToolTipService.ToolTip="현재 위치를 끝으로" />
-                    </Grid>
+                    <StackPanel Grid.Row="2" Spacing="4" Margin="0,6,0,0">
+                        <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}">
+                            <Run Text="구간 길이  " /><Run Text="{x:Bind VM.TrimDurationText, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource BcTextBrush}" />
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5" VerticalAlignment="Center">
+                            <Button Content="[" MinWidth="0" Padding="8,4" Click="OnSetStartToCurrent" ToolTipService.ToolTip="[ : 시작 구간 설정" />
+                            <Button Content="]" MinWidth="0" Padding="8,4" Click="OnSetEndToCurrent" ToolTipService.ToolTip="] : 종료 구간 설정" />
+                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimStart, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
+                            <TextBlock Text="~" VerticalAlignment="Center" Foreground="{StaticResource BcTextSecondaryBrush}" Margin="2,0" />
+                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimEnd, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
+                            <Button MinWidth="0" Padding="8,4" Click="OnRangePlayPause" ToolTipService.ToolTip="구간 재생/일시정지">
+                                <TextBlock Text="[&#x25B6;]" FontSize="11" />
+                            </Button>
+                            <Button MinWidth="0" Padding="8,4" Click="OnRangeStop" ToolTipService.ToolTip="구간 재생 중지">
+                                <FontIcon Glyph="&#xE71A;" FontSize="13" />
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
 
                     <!-- 합치기 + 나누기 옵션 -->
-                    <Grid Grid.Row="4" Margin="0,8,0,0">
+                    <Grid Grid.Row="3" Margin="0,8,0,0">
                         <CheckBox Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}" Foreground="{StaticResource BcTextBrush}" />
                         <StackPanel x:Name="SplitOptions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Visibility="Collapsed">
                             <RadioButton Content="개수" GroupName="sp" IsChecked="{x:Bind VM.SplitByCount, Mode=TwoWay}" MinWidth="0" />
@@ -191,8 +194,8 @@
             <Grid x:Name="HomeOverlay" Grid.Column="1" Background="{StaticResource BcPanelDarkBrush}" Visibility="Collapsed">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18">
                     <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
-                        <Button Click="OnTileTrim" Width="150" Height="150" Background="{StaticResource BcAccentBrush}" CornerRadius="6">
-                            <StackPanel Spacing="10"><FontIcon Glyph="&#xE8C6;" FontSize="44" Foreground="White" /><TextBlock Text="자르기" Foreground="White" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
+                        <Button Click="OnTileTrim" Width="150" Height="150" Background="{StaticResource BcCardBrush}" CornerRadius="6">
+                            <StackPanel Spacing="10"><FontIcon Glyph="&#xE8C6;" FontSize="44" Foreground="{StaticResource BcTextBrush}" /><TextBlock Text="자르기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
                         </Button>
                         <Button Click="OnTileSplit" Width="150" Height="150" Background="{StaticResource BcCardBrush}" CornerRadius="6">
                             <StackPanel Spacing="10"><FontIcon Glyph="&#xE8CA;" FontSize="44" Foreground="{StaticResource BcTextBrush}" /><TextBlock Text="나누기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
@@ -209,14 +212,14 @@
         <!-- ════════ 하단 바 ════════ -->
         <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,*,Auto" Padding="12,6">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Button Style="{StaticResource StartButtonStyle}" MinWidth="0" Width="40" Click="OnOpenClick" ToolTipService.ToolTip="영상 추가"><FontIcon Glyph="&#xE710;" FontSize="16" /></Button>
+                <Button Style="{StaticResource StartButtonStyle}" MinWidth="0" Width="40" Click="OnOpenClick" ToolTipService.ToolTip="영상 추가 (F2)"><FontIcon Glyph="&#xE710;" FontSize="16" /></Button>
             </StackPanel>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0">
                 <ProgressBar Value="{x:Bind VM.ProgressValue, Mode=OneWay}" Maximum="100" />
                 <TextBlock Text="{x:Bind VM.StatusText, Mode=OneWay}" FontSize="11" Foreground="{StaticResource BcTextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <TextBlock Text="{x:Bind VM.EtaText, Mode=OneWay}" VerticalAlignment="Center" FontFamily="Consolas" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}" />
+                <TextBlock Text="{x:Bind VM.EtaText, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}" />
                 <Button Content="취소" Command="{x:Bind VM.CancelCommand}" IsEnabled="{x:Bind VM.IsBusy, Mode=OneWay}" />
                 <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
             </StackPanel>

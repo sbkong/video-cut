@@ -7,32 +7,54 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Height="54">
-        <Canvas x:Name="Track" Background="Transparent" SizeChanged="OnTrackSizeChanged"
-                PointerPressed="OnTrackPressed">
+    <Grid>
+        <Canvas x:Name="Track" Background="Transparent"
+                SizeChanged="OnTrackSizeChanged"
+                PointerEntered="OnTrackEntered"
+                PointerExited="OnTrackExited"
+                PointerPressed="OnTrackPressed"
+                PointerMoved="OnTrackMoved"
+                PointerReleased="OnTrackReleased">
 
-            <!-- 전체 길이 레일 -->
-            <Border x:Name="Rail" Height="10" CornerRadius="5"
-                    Background="{ThemeResource ControlStrongFillColorDefaultBrush}" />
+            <!-- 전체 트랙 -->
+            <Border x:Name="Rail" Height="8" CornerRadius="4" Background="#3A3D42" />
 
-            <!-- 선택 구간(파란색) -->
-            <Border x:Name="Selection" Height="10" CornerRadius="5"
-                    Background="#5A8CFF" Opacity="0.55" />
+            <!-- 재생 진행 (0 → Position) -->
+            <Border x:Name="Progress" Height="8" CornerRadius="4,0,0,4"
+                    Background="#3574F0" Opacity="0.38" />
+
+            <!-- 선택 구간 (Start → End) -->
+            <Border x:Name="Selection" Height="8" CornerRadius="0"
+                    Background="#3574F0" Opacity="0.80" />
 
             <!-- 시작 핸들 -->
-            <Border x:Name="StartHandle" Width="12" Height="30" CornerRadius="3"
-                    Background="#5A8CFF" BorderBrush="White" BorderThickness="1"
-                    ManipulationMode="TranslateX"
-                    PointerPressed="OnHandlePressed" PointerMoved="OnHandleMoved" PointerReleased="OnHandleReleased" />
+            <Border x:Name="StartHandle" Width="10" Height="26" CornerRadius="3"
+                    Background="#3574F0" BorderBrush="#6AA0FF" BorderThickness="1"
+                    ManipulationMode="None"
+                    PointerPressed="OnHandlePressed"
+                    PointerMoved="OnHandleMoved"
+                    PointerReleased="OnHandleReleased" />
 
             <!-- 끝 핸들 -->
-            <Border x:Name="EndHandle" Width="12" Height="30" CornerRadius="3"
-                    Background="#5A8CFF" BorderBrush="White" BorderThickness="1"
-                    ManipulationMode="TranslateX"
-                    PointerPressed="OnHandlePressed" PointerMoved="OnHandleMoved" PointerReleased="OnHandleReleased" />
+            <Border x:Name="EndHandle" Width="10" Height="26" CornerRadius="3"
+                    Background="#3574F0" BorderBrush="#6AA0FF" BorderThickness="1"
+                    ManipulationMode="None"
+                    PointerPressed="OnHandlePressed"
+                    PointerMoved="OnHandleMoved"
+                    PointerReleased="OnHandleReleased" />
 
-            <!-- 재생헤드(주황) -->
-            <Rectangle x:Name="Playhead" Width="2" Height="40" Fill="#F5A623" />
+            <!-- 재생헤드 (주황, 드래그 가능) -->
+            <Rectangle x:Name="Playhead" Width="2" Height="32" Fill="#F5A623"
+                       PointerPressed="OnPlayheadPressed"
+                       PointerMoved="OnPlayheadMoved"
+                       PointerReleased="OnPlayheadReleased" />
+
+            <!-- 호버 타임 툴팁 -->
+            <Border x:Name="HoverTip" Visibility="Collapsed" IsHitTestVisible="False"
+                    Background="#CC1B1D21" CornerRadius="3" Padding="5,2">
+                <TextBlock x:Name="HoverTipText" Text="00:00:00.00" FontSize="10" Foreground="White" />
+            </Border>
+
         </Canvas>
     </Grid>
 </UserControl>

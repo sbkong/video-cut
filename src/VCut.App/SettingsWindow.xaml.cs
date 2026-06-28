@@ -21,12 +21,17 @@ public sealed partial class SettingsWindow : Window
         Title = "v-cut — 환경 설정";
         S = SettingsStore.Current.Clone();
         LoadNonBound();
+        NavGeneral.IsChecked = true;
+
+        // 현재 적용 중인 테마를 이 창에도 적용
+        if (Content is FrameworkElement root)
+            ThemeService.SetElementTheme(root, SettingsStore.Current.Theme);
 
         if (AppWindow is { } aw)
-            aw.Resize(new Windows.Graphics.SizeInt32(560, 620));
+            aw.Resize(new Windows.Graphics.SizeInt32(560, 640));
     }
 
-    /// <summary>x:Bind로 처리되지 않는 항목(폴더/콤보)을 사본 값으로 초기화.</summary>
+    /// <summary>x:Bind로 처리되지 않는 항목(폴더/콤보/테마)을 사본 값으로 초기화.</summary>
     private void LoadNonBound()
     {
         SameFolderRadio.IsChecked = S.SaveFolderMode == SaveFolderMode.SameAsSource;
@@ -35,6 +40,8 @@ public sealed partial class SettingsWindow : Window
         TempFolderBox.Text = S.TempFolder;
         LanguageCombo.SelectedIndex = S.Language switch { "en" => 1, "ja" => 2, _ => 0 };
         HwCombo.SelectedIndex = (int)S.DefaultHardwareAccel;
+        ThemeDarkRadio.IsChecked  = S.Theme == AppTheme.Dark;
+        ThemeLightRadio.IsChecked = S.Theme == AppTheme.Light;
     }
 
     private void CollectNonBound()
@@ -45,8 +52,37 @@ public sealed partial class SettingsWindow : Window
         S.TempFolder = TempFolderBox.Text.Trim();
         S.Language = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", _ => "ko" };
         S.DefaultHardwareAccel = (HardwareAccel)Math.Max(0, HwCombo.SelectedIndex);
+        S.Theme = ThemeLightRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // 왼쪽 네비게이션
+    // ────────────────────────────────────────────────────────────────
+    private void OnNavChecked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not RadioButton rb || !int.TryParse(rb.Tag?.ToString(), out int idx)) return;
+        PanelGeneral.Visibility  = idx == 0 ? Visibility.Visible : Visibility.Collapsed;
+        PanelPlayback.Visibility = idx == 1 ? Visibility.Visible : Visibility.Collapsed;
+        PanelFiles.Visibility    = idx == 2 ? Visibility.Visible : Visibility.Collapsed;
+        PanelLanguage.Visibility = idx == 3 ? Visibility.Visible : Visibility.Collapsed;
+        PanelFastMode.Visibility = idx == 4 ? Visibility.Visible : Visibility.Collapsed;
+        PanelTheme.Visibility    = idx == 5 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 테마 라이브 미리보기
+    // ────────────────────────────────────────────────────────────────
+    private void OnThemeRadioChecked(object sender, RoutedEventArgs e)
+    {
+        var theme = ThemeLightRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
+        ThemeService.Apply(theme,
+            Content as FrameworkElement,
+            App.MainWindow?.Content as FrameworkElement);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 파일 찾아보기
+    // ────────────────────────────────────────────────────────────────
     private async void OnBrowseSaveFolder(object sender, RoutedEventArgs e)
     {
         var path = await PickFolderAsync();
@@ -72,6 +108,9 @@ public sealed partial class SettingsWindow : Window
         return folder?.Path;
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // 저장 / 취소 / 초기화
+    // ────────────────────────────────────────────────────────────────
     private void OnSave(object sender, RoutedEventArgs e)
     {
         CollectNonBound();
@@ -80,14 +119,19 @@ public sealed partial class SettingsWindow : Window
         Close();
     }
 
-    private void OnCancel(object sender, RoutedEventArgs e) => Close();
+    private void OnCancel(object sender, RoutedEventArgs e)
+    {
+        // 라이브 미리보기로 바뀐 테마를 저장된 상태로 되돌림
+        ThemeService.Apply(SettingsStore.Current.Theme,
+            Content as FrameworkElement,
+            App.MainWindow?.Content as FrameworkElement);
+        Close();
+    }
 
     private void OnReset(object sender, RoutedEventArgs e)
     {
         S = new AppSettings();
-        LoadNonBound();
-        // x:Bind OneTime이 아니므로 재바인딩을 위해 Pivot을 다시 그릴 필요 없이
-        // 사본 교체 후 컨트롤을 재초기화. 체크박스는 다음 줄에서 직접 반영.
+        LoadNonBound(); // ThemeDarkRadio.IsChecked = true → OnThemeRadioChecked 발동
         Bindings.Update();
     }
 }

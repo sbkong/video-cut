@@ -12,7 +12,6 @@
             <Setter Property="Width" Value="34" />
             <Setter Property="MaxLength" Value="2" />
             <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="FontFamily" Value="Consolas" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0,2" />
             <Setter Property="Background" Value="Transparent" />
@@ -20,7 +19,6 @@
         <Style x:Key="TcSep" TargetType="TextBlock">
             <Setter Property="Text" Value=":" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="FontFamily" Value="Consolas" />
             <Setter Property="Opacity" Value="0.6" />
         </Style>
     </UserControl.Resources>

@@ -32,6 +32,23 @@ public sealed partial class ClipSegment : ObservableObject
     /// <summary>목록 표시용 번호(1부터).</summary>
     [ObservableProperty] private int _displayIndex;
 
+    /// <summary>목록에서 현재 선택된 항목 여부.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedVisibility))]
+    private bool _isSelected;
+
+    public Microsoft.UI.Xaml.Visibility SelectedVisibility =>
+        IsSelected ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    /// <summary>미리보기 회전 각도 (0/90/180/270).</summary>
+    public int VideoRotation { get; set; }
+    /// <summary>미리보기 좌우 반전.</summary>
+    public bool FlipH { get; set; }
+    /// <summary>미리보기 상하 반전.</summary>
+    public bool FlipV { get; set; }
+    /// <summary>미리보기 볼륨 (0.0 ~ 1.0).</summary>
+    public double Volume { get; set; } = 1.0;
+
     public string FileName => Path.GetFileName(FilePath);
 
     public string RangeText =>

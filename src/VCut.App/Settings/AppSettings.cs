@@ -2,6 +2,9 @@ using VCut.Core.Models;
 
 namespace VCut.App.Settings;
 
+/// <summary>앱 테마.</summary>
+public enum AppTheme { Dark, Light }
+
 /// <summary>저장 폴더 결정 방식.</summary>
 public enum SaveFolderMode
 {
@@ -59,6 +62,9 @@ public sealed class AppSettings
     // ── 코덱(엔진 기본값) ──
     /// <summary>[연결] 변환 시 기본 하드웨어 가속 인코더.</summary>
     public HardwareAccel DefaultHardwareAccel { get; set; } = HardwareAccel.None;
+
+    // ── 테마 ──
+    public AppTheme Theme { get; set; } = AppTheme.Dark;
 
     public AppSettings Clone() => (AppSettings)MemberwiseClone();
 

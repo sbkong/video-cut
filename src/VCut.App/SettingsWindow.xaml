@@ -7,90 +7,277 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="Root" RowDefinitions="*,Auto" Padding="16">
-        <Pivot Grid.Row="0">
+    <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}">
+        <Grid.Resources>
+            <!-- 왼쪽 사이드바 네비게이션 아이템 -->
+            <Style x:Key="NavItemStyle" TargetType="RadioButton">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{StaticResource BcTextSecondaryBrush}"/>
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                <Setter Property="MinHeight" Value="40"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Grid x:Name="RootGrid">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal"/>
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="HoverRect.Opacity" Value="1"/>
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="HoverRect.Opacity" Value="1"/>
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                    <VisualStateGroup x:Name="CheckStates">
+                                        <VisualState x:Name="Unchecked"/>
+                                        <VisualState x:Name="Checked">
+                                            <VisualState.Setters>
+                                                <Setter Target="SelRect.Opacity" Value="1"/>
+                                                <Setter Target="Label.Foreground" Value="{StaticResource BcTextBrush}"/>
+                                                <Setter Target="Indicator.Opacity" Value="1"/>
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <!-- 선택됨: BcPanelBrush (콘텐츠 영역과 동일 → 시각적 연결) -->
+                                <Rectangle x:Name="SelRect"
+                                           Fill="{StaticResource BcPanelBrush}" Opacity="0"/>
+                                <!-- 호버: BcAppBrush (레일보다 살짝 밝음) -->
+                                <Rectangle x:Name="HoverRect"
+                                           Fill="{StaticResource BcAppBrush}" Opacity="0"/>
+                                <!-- 선택 강조 막대 -->
+                                <Rectangle x:Name="Indicator" Width="3"
+                                           HorizontalAlignment="Left"
+                                           Fill="{StaticResource BcAccentBrush}" Opacity="0"/>
+                                <TextBlock x:Name="Label"
+                                           Text="{TemplateBinding Content}"
+                                           Foreground="{TemplateBinding Foreground}"
+                                           VerticalAlignment="Center"
+                                           Margin="20,0,12,0"
+                                           FontSize="{TemplateBinding FontSize}"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
 
-            <!-- 일반 -->
-            <PivotItem Header="일반">
-                <ScrollViewer>
+        <!-- ════════ 헤더 바 ════════ -->
+        <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" Padding="16,0">
+            <TextBlock Text="환경 설정" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{StaticResource BcTextBrush}" VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- ════════ 본문: 사이드바 + 콘텐츠 ════════ -->
+        <Grid Grid.Row="1" ColumnDefinitions="130,*">
+
+            <!-- 왼쪽 네비게이션 -->
+            <StackPanel Grid.Column="0" Background="{StaticResource BcRailBrush}" Padding="0,8,0,0">
+                <RadioButton x:Name="NavGeneral"  Content="일반"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="0"/>
+                <RadioButton x:Name="NavPlayback" Content="재생"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="1"/>
+                <RadioButton x:Name="NavFiles"    Content="파일"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="2"/>
+                <RadioButton x:Name="NavLanguage" Content="언어"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="3"/>
+                <RadioButton x:Name="NavFastMode" Content="고속 모드" GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="4"/>
+                <RadioButton x:Name="NavTheme"    Content="테마"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="5"/>
+            </StackPanel>
+
+            <!-- 콘텐츠 영역 (패널들이 겹쳐 쌓이고 가시성으로 전환) -->
+            <Grid Grid.Column="1" Background="{StaticResource BcPanelBrush}">
+
+                <!-- ── 일반 ── -->
+                <ScrollViewer x:Name="PanelGeneral" Padding="16">
                     <StackPanel Spacing="8">
-                        <CheckBox Content="탐색 불가능한 영상인 경우 알림" IsChecked="{x:Bind S.WarnUnseekable, Mode=TwoWay}" />
-                        <CheckBox Content="저장 폴더에 이미 파일이 있는 경우 알림" IsChecked="{x:Bind S.WarnFileExists, Mode=TwoWay}" />
-                        <CheckBox Content="프로젝트 저장 메시지 표시" IsChecked="{x:Bind S.ShowProjectSaveMessage, Mode=TwoWay}" />
-                        <CheckBox Content="작업 완료 후 저장 폴더 열기" IsChecked="{x:Bind S.OpenFolderAfterDone, Mode=TwoWay}" />
-                        <CheckBox Content="로그 파일 생성하기(.log)" IsChecked="{x:Bind S.CreateLogFile, Mode=TwoWay}" />
-                        <CheckBox Content="영상 정보(MOOV)를 파일 앞부분에 저장(MP4 전용)" IsChecked="{x:Bind S.MoovAtFront, Mode=TwoWay}" />
-                        <CheckBox Content="파일 생성 시간 정보 유지하기" IsChecked="{x:Bind S.KeepCreationTime, Mode=TwoWay}" />
-                        <CheckBox Content="팁/정보 보이기" IsChecked="{x:Bind S.ShowTips, Mode=TwoWay}" />
-                        <CheckBox Content="구간 미세 조정 숫자 입력 시 커서 자동 이동" IsChecked="{x:Bind S.AutoAdvanceCursor, Mode=TwoWay}" />
+                        <CheckBox Content="탐색 불가능한 영상인 경우 알림"
+                                  IsChecked="{x:Bind S.WarnUnseekable, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="저장 폴더에 이미 파일이 있는 경우 알림"
+                                  IsChecked="{x:Bind S.WarnFileExists, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="프로젝트 저장 메시지 표시"
+                                  IsChecked="{x:Bind S.ShowProjectSaveMessage, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="작업 완료 후 저장 폴더 열기"
+                                  IsChecked="{x:Bind S.OpenFolderAfterDone, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="로그 파일 생성하기(.log)"
+                                  IsChecked="{x:Bind S.CreateLogFile, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="영상 정보(MOOV)를 파일 앞부분에 저장(MP4 전용)"
+                                  IsChecked="{x:Bind S.MoovAtFront, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="파일 생성 시간 정보 유지하기"
+                                  IsChecked="{x:Bind S.KeepCreationTime, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="팁/정보 보이기"
+                                  IsChecked="{x:Bind S.ShowTips, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="구간 미세 조정 숫자 입력 시 커서 자동 이동"
+                                  IsChecked="{x:Bind S.AutoAdvanceCursor, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
                     </StackPanel>
                 </ScrollViewer>
-            </PivotItem>
 
-            <!-- 재생 -->
-            <PivotItem Header="재생">
-                <StackPanel Spacing="8">
-                    <CheckBox Content="재생 불가능한 영상인 경우 알림" IsChecked="{x:Bind S.WarnUnplayable, Mode=TwoWay}" />
-                    <CheckBox Content="재생 시 디인터레이스 적용(인터레이스 영상만)" IsChecked="{x:Bind S.DeinterlaceOnPlay, Mode=TwoWay}" />
-                    <CheckBox Content="재생 시 하드웨어 렌더러 사용(개선된 화질)" IsChecked="{x:Bind S.HardwareRenderer, Mode=TwoWay}" />
-                    <CheckBox Content="하드웨어 디코더 사용" IsChecked="{x:Bind S.UseHardwareDecoder, Mode=TwoWay}" />
-                    <TextBlock Text="※ 재생 관련 항목은 미리보기 동작에 점진 반영됩니다." FontSize="11.5" Opacity="0.7" />
-                </StackPanel>
-            </PivotItem>
+                <!-- ── 재생 ── -->
+                <ScrollViewer x:Name="PanelPlayback" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="8">
+                        <CheckBox Content="재생 불가능한 영상인 경우 알림"
+                                  IsChecked="{x:Bind S.WarnUnplayable, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="재생 시 디인터레이스 적용(인터레이스 영상만)"
+                                  IsChecked="{x:Bind S.DeinterlaceOnPlay, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="재생 시 하드웨어 렌더러 사용(개선된 화질)"
+                                  IsChecked="{x:Bind S.HardwareRenderer, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="하드웨어 디코더 사용"
+                                  IsChecked="{x:Bind S.UseHardwareDecoder, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <TextBlock Text="※ 재생 관련 항목은 미리보기 동작에 점진 반영됩니다."
+                                   FontSize="11.5"
+                                   Foreground="{StaticResource BcTextSecondaryBrush}"/>
+                    </StackPanel>
+                </ScrollViewer>
 
-            <!-- 파일 -->
-            <PivotItem Header="파일">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="저장 폴더" FontWeight="SemiBold" />
-                    <RadioButton x:Name="SameFolderRadio" Content="원본 파일과 같은 위치에 저장" GroupName="savefolder" />
-                    <RadioButton x:Name="CustomFolderRadio" Content="지정한 폴더에 저장" GroupName="savefolder" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBox Grid.Column="0" x:Name="SaveFolderBox" PlaceholderText="저장 폴더 경로" />
-                        <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseSaveFolder" />
-                    </Grid>
-                    <TextBlock Text="임시 파일 폴더(Cache)" FontWeight="SemiBold" Margin="0,8,0,0" />
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBox Grid.Column="0" x:Name="TempFolderBox" PlaceholderText="비우면 시스템 임시 폴더" />
-                        <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseTempFolder" />
-                    </Grid>
-                </StackPanel>
-            </PivotItem>
+                <!-- ── 파일 ── -->
+                <ScrollViewer x:Name="PanelFiles" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="저장 폴더" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="SameFolderRadio"
+                                     Content="원본 파일과 같은 위치에 저장"
+                                     GroupName="savefolder"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="CustomFolderRadio"
+                                     Content="지정한 폴더에 저장"
+                                     GroupName="savefolder"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Grid.Column="0" x:Name="SaveFolderBox"
+                                     PlaceholderText="저장 폴더 경로"/>
+                            <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseSaveFolder"/>
+                        </Grid>
+                        <TextBlock Text="임시 파일 폴더(Cache)" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Grid.Column="0" x:Name="TempFolderBox"
+                                     PlaceholderText="비우면 시스템 임시 폴더"/>
+                            <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseTempFolder"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
 
-            <!-- 언어 -->
-            <PivotItem Header="언어">
-                <StackPanel Spacing="10">
-                    <ComboBox Header="언어" x:Name="LanguageCombo" HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="한국어" Tag="ko" />
-                        <ComboBoxItem Content="English" Tag="en" />
-                        <ComboBoxItem Content="日本語" Tag="ja" />
-                    </ComboBox>
-                    <TextBlock Text="※ 언어 변경은 다음 버전에서 적용됩니다(현재 보존만)." FontSize="11.5" Opacity="0.7" />
-                </StackPanel>
-            </PivotItem>
+                <!-- ── 언어 ── -->
+                <ScrollViewer x:Name="PanelLanguage" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="10">
+                        <ComboBox Header="언어" x:Name="LanguageCombo" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="한국어" Tag="ko"/>
+                            <ComboBoxItem Content="English" Tag="en"/>
+                            <ComboBoxItem Content="日本語" Tag="ja"/>
+                        </ComboBox>
+                        <TextBlock Text="※ 언어 변경은 다음 버전에서 적용됩니다(현재 보존만)."
+                                   FontSize="11.5"
+                                   Foreground="{StaticResource BcTextSecondaryBrush}"/>
+                    </StackPanel>
+                </ScrollViewer>
 
-            <!-- 고속 모드 -->
-            <PivotItem Header="고속 모드">
-                <StackPanel Spacing="8">
-                    <CheckBox Content="고속 모드가 불가능한 경우 알림" IsChecked="{x:Bind S.WarnFastUnavailable, Mode=TwoWay}" />
-                    <CheckBox Content="항상 키프레임 단위로 고속 모드 사용" IsChecked="{x:Bind S.AlwaysKeyframe, Mode=TwoWay}" />
-                    <CheckBox Content="고속 모드에서 시작위치가 달라지는 경우 알림" IsChecked="{x:Bind S.WarnStartShift, Mode=TwoWay}" />
-                    <CheckBox Content="고속 모드 합치기 허용 조건 완화" IsChecked="{x:Bind S.RelaxFastMerge, Mode=TwoWay}" />
-                    <TextBlock Text="기본 하드웨어 가속(변환 인코더)" FontWeight="SemiBold" Margin="0,8,0,0" />
-                    <ComboBox x:Name="HwCombo" HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="사용 안 함(소프트웨어)" />
-                        <ComboBoxItem Content="NVIDIA NVENC" />
-                        <ComboBoxItem Content="Intel QuickSync" />
-                        <ComboBoxItem Content="AMD AMF" />
-                    </ComboBox>
-                </StackPanel>
-            </PivotItem>
-        </Pivot>
+                <!-- ── 고속 모드 ── -->
+                <ScrollViewer x:Name="PanelFastMode" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="8">
+                        <CheckBox Content="고속 모드가 불가능한 경우 알림"
+                                  IsChecked="{x:Bind S.WarnFastUnavailable, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="항상 키프레임 단위로 고속 모드 사용"
+                                  IsChecked="{x:Bind S.AlwaysKeyframe, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="고속 모드에서 시작위치가 달라지는 경우 알림"
+                                  IsChecked="{x:Bind S.WarnStartShift, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <CheckBox Content="고속 모드 합치기 허용 조건 완화"
+                                  IsChecked="{x:Bind S.RelaxFastMerge, Mode=TwoWay}"
+                                  Foreground="{StaticResource BcTextBrush}"/>
+                        <TextBlock Text="기본 하드웨어 가속(변환 인코더)" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <ComboBox x:Name="HwCombo" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="사용 안 함(소프트웨어)"/>
+                            <ComboBoxItem Content="NVIDIA NVENC"/>
+                            <ComboBoxItem Content="Intel QuickSync"/>
+                            <ComboBoxItem Content="AMD AMF"/>
+                        </ComboBox>
+                    </StackPanel>
+                </ScrollViewer>
 
-        <!-- 하단 버튼 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
-            <Button Content="초기화" Click="OnReset" />
-            <Button Content="취소" Click="OnCancel" />
-            <Button Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}" />
-        </StackPanel>
+                <!-- ── 테마 ── -->
+                <ScrollViewer x:Name="PanelTheme" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="앱 테마" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}"/>
+
+                        <!-- 어두운 테마 -->
+                        <RadioButton x:Name="ThemeDarkRadio" GroupName="apptheme"
+                                     Checked="OnThemeRadioChecked"
+                                     Foreground="{StaticResource BcTextBrush}">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#1E1F22"/>
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#2B2D30"/>
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#3574F0"/>
+                                </StackPanel>
+                                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BcTextBrush}">
+                                    <Run Text="어두운 테마  " FontWeight="SemiBold"/>
+                                    <Run Text="JetBrains Dark" Foreground="{StaticResource BcTextSecondaryBrush}" FontSize="11.5"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <!-- 밝은 테마 -->
+                        <RadioButton x:Name="ThemeLightRadio" GroupName="apptheme"
+                                     Checked="OnThemeRadioChecked"
+                                     Foreground="{StaticResource BcTextBrush}">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#F2F3F5"
+                                            BorderBrush="#C0C2C8" BorderThickness="1"/>
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#E4E6EA"
+                                            BorderBrush="#C0C2C8" BorderThickness="1"/>
+                                    <Border Width="13" Height="13" CornerRadius="2" Background="#2F80D8"/>
+                                </StackPanel>
+                                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource BcTextBrush}">
+                                    <Run Text="밝은 테마  " FontWeight="SemiBold"/>
+                                    <Run Text="JetBrains Light" Foreground="{StaticResource BcTextSecondaryBrush}" FontSize="11.5"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </RadioButton>
+
+                        <TextBlock Text="※ 테마 변경은 즉시 미리보기되며, 저장 시 확정됩니다."
+                                   FontSize="11.5" Foreground="{StaticResource BcTextSecondaryBrush}"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
+        </Grid>
+
+        <!-- ════════ 하단 액션 바 ════════ -->
+        <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" Padding="12,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                        Spacing="8" VerticalAlignment="Center">
+                <Button Content="초기화" Click="OnReset"/>
+                <Button Content="취소" Click="OnCancel"/>
+                <Button Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}"/>
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

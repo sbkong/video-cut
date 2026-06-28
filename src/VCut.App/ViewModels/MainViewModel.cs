@@ -38,6 +38,11 @@ public sealed partial class MainViewModel : ObservableObject
             StatusText = "ffmpeg를 찾을 수 없습니다: " + ex.Message;
             EngineReady = false;
         }
+        Segments.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Move)
+                Renumber();
+        };
     }
 
     // ──────────────── 공통 상태 ────────────────
@@ -92,8 +97,23 @@ public sealed partial class MainViewModel : ObservableObject
 
     private bool _syncingSegment;
 
-    [ObservableProperty] private TimeSpan _trimStart;
-    [ObservableProperty] private TimeSpan _trimEnd;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TrimDurationText))]
+    private TimeSpan _trimStart;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TrimDurationText))]
+    private TimeSpan _trimEnd;
+
+    public string TrimDurationText =>
+        TrimEnd > TrimStart
+            ? (TrimEnd - TrimStart).ToString(@"hh\:mm\:ss\.ff")
+            : "00:00:00.00";
+
+    /// <summary>미리보기 회전 각도 (0/90/180/270) — FFmpeg 미처리, 시각 변환만.</summary>
+    [ObservableProperty] private int _videoRotation;
+    [ObservableProperty] private bool _flipH;
+    [ObservableProperty] private bool _flipV;
     [ObservableProperty] private bool _joinSegments;
     [ObservableProperty] private bool _extractAudioOnly;
     [ObservableProperty] private bool _removeAudio;
@@ -183,12 +203,16 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void RemoveSelectedClip()
     {
-        if (SelectedSegment is null) return;
-        int idx = Segments.IndexOf(SelectedSegment);
-        SelectedSegment.PropertyChanged -= OnSegmentRangeChanged;
-        Segments.Remove(SelectedSegment);
+        var toRemove = Segments.Where(s => s.IsSelected).ToList();
+        if (toRemove.Count == 0) return;
+        int firstIdx = Segments.IndexOf(toRemove[0]);
+        foreach (var seg in toRemove)
+        {
+            seg.PropertyChanged -= OnSegmentRangeChanged;
+            Segments.Remove(seg);
+        }
         Renumber();
-        SelectedSegment = Segments.Count > 0 ? Segments[Math.Min(idx, Segments.Count - 1)] : null;
+        SelectedSegment = Segments.Count > 0 ? Segments[Math.Min(firstIdx, Segments.Count - 1)] : null;
         OnPropertyChanged(nameof(HasSegments)); OnPropertyChanged(nameof(HasNoSegments));
         OnPropertyChanged(nameof(TotalDurationText));
     }
@@ -227,6 +251,9 @@ public sealed partial class MainViewModel : ObservableObject
         FrameRate = value.FrameRate;
         TrimStart = value.Start;
         TrimEnd = value.End;
+        VideoRotation = value.VideoRotation;
+        FlipH = value.FlipH;
+        FlipV = value.FlipV;
         PlayPosition = TimeSpan.Zero;
         MediaSummary = $"{value.FileName}  ·  {value.Duration:hh\\:mm\\:ss\\.fff}";
         LoadPreview?.Invoke(value.FilePath, value.FrameRate);
@@ -234,17 +261,47 @@ public sealed partial class MainViewModel : ObservableObject
         NotifyCommands();
     }
 
+    /// <summary>미리보기 회전/반전 — FFmpeg 없이 시각 변환만. "none"/"90"/"hflip"/"vflip".</summary>
+    [RelayCommand]
+    private void ApplyTransform(string? param)
+    {
+        switch (param)
+        {
+            case "none":
+                VideoRotation = 0; FlipH = false; FlipV = false;
+                break;
+            case "90":
+                VideoRotation = (VideoRotation + 90) % 360;
+                break;
+            case "hflip":
+                FlipH = !FlipH;
+                break;
+            case "vflip":
+                FlipV = !FlipV;
+                break;
+        }
+        if (SelectedSegment is not null)
+        {
+            SelectedSegment.VideoRotation = VideoRotation;
+            SelectedSegment.FlipH = FlipH;
+            SelectedSegment.FlipV = FlipV;
+        }
+    }
+
     /// <summary>타임코드/타임라인으로 구간을 바꾸면 선택 구간 모델에 반영.</summary>
     partial void OnTrimStartChanged(TimeSpan value)
     {
-        if (!_syncingSegment && SelectedSegment is not null) SelectedSegment.Start = value;
-        OnPropertyChanged(nameof(TotalDurationText));
+        if (_syncingSegment) return;
+        if (SelectedSegment is not null) SelectedSegment.Start = value;
+        // TotalDurationText는 OnSegmentRangeChanged에서 Start 변경 시 이미 통지됨 — 중복 제거
+        else OnPropertyChanged(nameof(TotalDurationText));
     }
 
     partial void OnTrimEndChanged(TimeSpan value)
     {
-        if (!_syncingSegment && SelectedSegment is not null) SelectedSegment.End = value;
-        OnPropertyChanged(nameof(TotalDurationText));
+        if (_syncingSegment) return;
+        if (SelectedSegment is not null) SelectedSegment.End = value;
+        else OnPropertyChanged(nameof(TotalDurationText));
     }
 
     private void OnSegmentRangeChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -447,85 +504,6 @@ public sealed partial class MainViewModel : ObservableObject
             NotifyCommands();
             RunBatchCommand.NotifyCanExecuteChanged();
         }
-    }
-
-    // ════════════════ 프로젝트 저장 / 열기 ════════════════
-
-    [RelayCommand]
-    private async Task SaveProjectAsync()
-    {
-        if (Segments.Count == 0) return;
-        try
-        {
-            var project = new VCutProject
-            {
-                FastMode = IsFastMode,
-                JoinSegments = MergeEnabled,
-                Clips = [.. Segments.Select(s => new ProjectClip
-                {
-                    Path = s.FilePath,
-                    Ranges = [ProjectRange.From(new MediaRange(s.Start, s.End))],
-                })],
-                Settings = ProjectSettings.From(BuildSettings()),
-            };
-            var dir = Path.GetDirectoryName(Segments[0].FilePath) ?? Directory.GetCurrentDirectory();
-            var path = Path.Combine(dir,
-                Path.GetFileNameWithoutExtension(Segments[0].FilePath) + ProjectFile.Extension);
-            await ProjectFile.SaveAsync(project, path);
-            StatusText = "프로젝트 저장: " + Path.GetFileName(path);
-            await Notify("프로젝트 저장", path);
-        }
-        catch (Exception ex) { await Notify("프로젝트 저장 실패", ex.Message); }
-    }
-
-    [RelayCommand]
-    private async Task OpenProjectAsync()
-    {
-        if (FilePicker is null) return;
-        var files = await FilePicker(false);
-        if (files.Count == 0) return;
-        try
-        {
-            var project = await ProjectFile.LoadAsync(files[0]);
-            IsFastMode = project.FastMode;
-            MergeEnabled = project.JoinSegments;
-            ApplyProjectSettings(project.Settings);
-
-            // 기존 목록 비우고 프로젝트 클립을 로드.
-            foreach (var s in Segments) s.PropertyChanged -= OnSegmentRangeChanged;
-            Segments.Clear();
-            foreach (var clip in project.Clips)
-                await AddClipsAsync([clip.Path]);
-            // 저장된 구간 범위 적용.
-            for (int i = 0; i < project.Clips.Count && i < Segments.Count; i++)
-            {
-                if (project.Clips[i].Ranges.Count > 0)
-                {
-                    var r = project.Clips[i].Ranges[0].ToMediaRange();
-                    Segments[i].Start = r.Start;
-                    Segments[i].End = r.End;
-                }
-            }
-            if (Segments.Count > 0) SelectedSegment = Segments[0];
-            StatusText = "프로젝트 열기 완료";
-        }
-        catch (Exception ex) { await Notify("프로젝트 열기 실패", ex.Message); }
-    }
-
-    private void ApplyProjectSettings(ProjectSettings s)
-    {
-        ContainerIndex = s.Container switch
-        {
-            ContainerFormat.Mkv => 1,
-            ContainerFormat.WebM => 2,
-            ContainerFormat.Avi => 3,
-            _ => 0,
-        };
-        Quality = s.Quality;
-        ResizeWidth = s.Width;
-        ResizeHeight = s.Height;
-        SpeedFactor = s.Speed > 0 ? s.Speed : 1.0;
-        WritePlaybackInfo = s.WritePlaybackInfo;
     }
 
     // ════════════════ 취소 ════════════════

@@ -1,7 +1,11 @@
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using VCut.App.ViewModels;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
 using WinRT.Interop;
@@ -19,12 +23,15 @@ public sealed partial class MainWindow : Window
 
         VM.FilePicker = PickFilesAsync;
         VM.ShowMessage = ShowMessageAsync;
+        VM.PropertyChanged += OnVmPropertyChanged;
         VM.LoadPreview = (path, fps) =>
         {
             Preview.FrameRate = fps;
-            Preview.SetSource(path);
+            Preview.SetSource(path, VM.MediaDuration);
+            Preview.Volume = VM.SelectedSegment?.Volume ?? 1.0;
         };
         Preview.PositionChanged += (s, pos) => VM.PlayPosition = pos;
+        Preview.VolumeChanged  += (s, v)   => { if (VM.SelectedSegment is { } seg) seg.Volume = v; };
 
         SetupShortcuts();
         ShowScreen("home");
@@ -59,16 +66,9 @@ public sealed partial class MainWindow : Window
     private async void OnRailInfo(object s, RoutedEventArgs e) =>
         await ShowMessageAsync("v-cut 정보", "v-cut 동영상 편집기\n버전 0.1.0\nFFmpeg 기반\n\nWinUI 3 / .NET 8");
 
-    private async void OnTileTrim(object s, RoutedEventArgs e) { ShowScreen("trim"); await EnsureClipsAsync(); }
-    private async void OnTileSplit(object s, RoutedEventArgs e) { ShowScreen("split"); await EnsureClipsAsync(); }
-    private async void OnTileMerge(object s, RoutedEventArgs e) { ShowScreen("merge"); await EnsureClipsAsync(); }
-
-    private async Task EnsureClipsAsync()
-    {
-        if (VM.Segments.Count == 0) await VM.OpenCommand.ExecuteAsync(null);
-    }
-
-    private void OnMenuClick(object s, RoutedEventArgs e) { /* 향후 메뉴 플라이아웃 */ }
+    private void OnTileTrim(object s, RoutedEventArgs e)  => ShowScreen("trim");
+    private void OnTileSplit(object s, RoutedEventArgs e) => ShowScreen("split");
+    private void OnTileMerge(object s, RoutedEventArgs e) => ShowScreen("merge");
 
     // ════════ 단축키 ════════
     private void SetupShortcuts()
@@ -76,7 +76,7 @@ public sealed partial class MainWindow : Window
         AddAccel(VirtualKey.F2, VirtualKeyModifiers.None, () => _ = VM.OpenCommand.ExecuteAsync(null));
         AddAccel(VirtualKey.F5, VirtualKeyModifiers.None, OpenSettings);
         AddAccel(VirtualKey.O, VirtualKeyModifiers.Control, () => _ = VM.OpenCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.S, VirtualKeyModifiers.Control, () => _ = VM.SaveProjectCommand.ExecuteAsync(null));
+        AddAccel(VirtualKey.Delete, VirtualKeyModifiers.None, () => VM.RemoveSelectedClipCommand.Execute(null));
     }
 
     private void AddAccel(VirtualKey key, VirtualKeyModifiers mod, Action handler)
@@ -108,13 +108,112 @@ public sealed partial class MainWindow : Window
     private void OnOpenSettings(object sender, RoutedEventArgs e) => OpenSettings();
     private void OpenSettings() => new SettingsWindow().Activate();
 
-    private void OnTimelineSeek(object? sender, TimeSpan t) => Preview.Position = t;
     private void OnSetStartToCurrent(object sender, RoutedEventArgs e) => VM.TrimStart = Preview.Position;
     private void OnSetEndToCurrent(object sender, RoutedEventArgs e) => VM.TrimEnd = Preview.Position;
+    private void OnRangePlayPause(object sender, RoutedEventArgs e) => Preview.ToggleRangePlay();
+    private void OnRangeStop(object sender, RoutedEventArgs e) => Preview.StopRange();
 
     private void OnCaptureClick(object sender, RoutedEventArgs e)
     {
         if (VM.CaptureFrameCommand.CanExecute(null)) VM.CaptureFrameCommand.Execute(null);
+    }
+
+    // ════════ 다중 선택 ════════
+
+    // TwoWay SelectedItem 바인딩 대신 수동 동기화 — TwoWay 바인딩은 Shift+클릭 중
+    // SelectedItem을 재설정해 SelectedItems 전체를 초기화하는 부작용이 있음.
+    private bool _syncingListView;
+
+    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.SelectedSegment) || _syncingListView) return;
+        _syncingListView = true;
+        var target = VM.SelectedSegment;
+        foreach (var seg in VM.Segments)
+            seg.IsSelected = seg == target;
+        SegmentList.SelectedItems.Clear();
+        if (target is not null)
+            SegmentList.SelectedItem = target;
+        _syncingListView = false;
+    }
+
+    private void OnSegmentListSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingListView) return;
+        foreach (var item in e.RemovedItems.OfType<ClipSegment>())
+            item.IsSelected = false;
+        foreach (var item in e.AddedItems.OfType<ClipSegment>())
+            item.IsSelected = true;
+        _syncingListView = true;
+        VM.SelectedSegment = e.AddedItems.OfType<ClipSegment>().LastOrDefault()
+            ?? SegmentList.SelectedItems.OfType<ClipSegment>().LastOrDefault();
+        _syncingListView = false;
+    }
+
+    private void OnSegmentListPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (IsOnListItem(e.OriginalSource)) return;
+        SegmentList.SelectedItems.Clear();
+    }
+
+    private void OnSegmentListPointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (_isDraggingItems) return;
+        if (IsOnListItem(e.OriginalSource)) return;
+        SegmentList.SelectedItems.Clear();
+    }
+
+    private static bool IsOnListItem(object? source)
+    {
+        var el = source as DependencyObject;
+        while (el != null)
+        {
+            if (el is ListViewItem) return true;
+            el = VisualTreeHelper.GetParent(el);
+        }
+        return false;
+    }
+
+    // ════════ 드래그 앤 드롭 ════════
+
+    private bool _isDraggingItems;
+
+    private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs e)
+    {
+        _isDraggingItems = true;
+    }
+
+    private void OnDragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        _isDraggingItems = false;
+    }
+
+    private static readonly HashSet<string> _videoExts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".mkv", ".mov", ".avi", ".wmv", ".flv", ".ts", ".webm", ".vob", ".m4v", ".mpg", ".mpeg"
+    };
+
+    private void OnSegmentListDragOver(object sender, DragEventArgs e)
+    {
+        if (e.DataView.Contains(StandardDataFormats.StorageItems))
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.DragUIOverride.Caption = "영상 추가";
+        }
+        // 내부 순서 조정 드래그는 ListView가 자체 처리하도록 AcceptedOperation 미설정
+    }
+
+    private async void OnSegmentListDrop(object sender, DragEventArgs e)
+    {
+        if (!e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+        var items = await e.DataView.GetStorageItemsAsync();
+        var paths = items
+            .OfType<StorageFile>()
+            .Where(f => _videoExts.Contains(Path.GetExtension(f.Path)))
+            .Select(f => f.Path)
+            .ToList();
+        if (paths.Count > 0)
+            await VM.AddClipsAsync(paths);
     }
 
     // ════════ 파일/메시지 ════════
