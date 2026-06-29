@@ -154,7 +154,7 @@
                 <!-- ── 파일 ── -->
                 <ScrollViewer x:Name="PanelFiles" Padding="16" Visibility="Collapsed">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="저장 폴더" FontWeight="SemiBold"
+                        <TextBlock Text="동영상 저장 폴더" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextBrush}"/>
                         <RadioButton x:Name="SameFolderRadio"
                                      Content="원본 파일과 같은 위치에 저장"
@@ -169,6 +169,35 @@
                                      PlaceholderText="저장 폴더 경로"/>
                             <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseSaveFolder"/>
                         </Grid>
+                        <TextBlock Text="캡처 저장 폴더" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <RadioButton x:Name="CaptureSameFolderRadio"
+                                     Content="원본 파일과 같은 위치에 저장"
+                                     GroupName="capturefolder"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="CaptureCustomFolderRadio"
+                                     Content="지정한 폴더에 저장"
+                                     GroupName="capturefolder"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <TextBox Grid.Column="0" x:Name="CaptureFolderBox"
+                                     PlaceholderText="캡처 저장 폴더 경로"/>
+                            <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseCaptureFolder"/>
+                        </Grid>
+                        <TextBlock Text="캡처 완료 후 폴더 열기" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <RadioButton x:Name="CaptureOpenAskRadio"
+                                     Content="매번 묻기"
+                                     GroupName="captureopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="CaptureOpenAlwaysRadio"
+                                     Content="항상 열기"
+                                     GroupName="captureopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="CaptureOpenNeverRadio"
+                                     Content="열지 않기"
+                                     GroupName="captureopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
                         <TextBlock Text="임시 파일 폴더(Cache)" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">

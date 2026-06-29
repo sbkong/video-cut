@@ -23,8 +23,29 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>View가 주입: 메시지 표시.</summary>
     public Func<string, string, Task>? ShowMessage { get; set; }
 
+    /// <summary>View가 주입: 예/아니요 확인 다이얼로그. (confirmed, dontAskAgain) 반환.</summary>
+    public Func<string, string, Task<(bool confirmed, bool dontAskAgain)>>? ShowConfirm { get; set; }
+
     /// <summary>View가 주입: 미리보기에 소스 로드.</summary>
     public Action<string, double>? LoadPreview { get; set; }
+
+    /// <summary>View가 주입: 미리보기 초기화.</summary>
+    public Action? ClearPreview { get; set; }
+
+    /// <summary>View가 주입: 프로젝트 저장 경로 선택 다이얼로그. 기본 파일명 → 선택 경로 or null.</summary>
+    public Func<string?, Task<string?>>? SaveProjectPicker { get; set; }
+
+    /// <summary>View가 주입: 프로젝트 열기 경로 선택 다이얼로그. → 선택 경로 or null.</summary>
+    public Func<Task<string?>>? OpenProjectPicker { get; set; }
+
+    /// <summary>View가 주입: 화면 전환 ("trim"/"split"/"merge").</summary>
+    public Action<string>? NavigateTo { get; set; }
+
+    /// <summary>View가 주입: 이동 후 ListView 다중 선택 재동기화.</summary>
+    public Action? RequestSelectionSync { get; set; }
+
+    /// <summary>현재 화면 이름. View에서 ShowScreen 호출 시 업데이트.</summary>
+    public string CurrentScreen { get; set; } = "trim";
 
     public MainViewModel()
     {
@@ -42,7 +63,35 @@ public sealed partial class MainViewModel : ObservableObject
         {
             if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Move)
                 Renumber();
+            IsModified = true;
         };
+        RefreshRecentProjects();
+    }
+
+    // ──────────────── 최근 프로젝트 ────────────────
+
+    public System.Collections.ObjectModel.ObservableCollection<RecentProjectItem> RecentProjects { get; } = [];
+
+    public bool HasRecentProjects => RecentProjects.Count > 0;
+
+    [RelayCommand]
+    private async Task OpenRecentProjectAsync(string path) =>
+        await LoadProjectFromFileAsync(path);
+
+    private void RefreshRecentProjects()
+    {
+        RecentProjects.Clear();
+        foreach (var p in SettingsStore.Current.RecentProjects.Take(8))
+            RecentProjects.Add(new RecentProjectItem(p));
+        OnPropertyChanged(nameof(HasRecentProjects));
+    }
+
+    public void RemoveRecentProject(string path)
+    {
+        var s = SettingsStore.Current;
+        s.RecentProjects.Remove(path);
+        SettingsStore.Save(s);
+        RefreshRecentProjects();
     }
 
     // ──────────────── 공통 상태 ────────────────
@@ -156,6 +205,186 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private double _resizeWidth;
     [ObservableProperty] private double _resizeHeight;
 
+    // ════════════════ 프로젝트 저장 / 열기 ════════════════
+
+    private string? _currentProjectPath;
+
+    /// <summary>현재 열려 있는 프로젝트 파일 경로. null이면 새 프로젝트.</summary>
+    public string? CurrentProjectPath
+    {
+        get => _currentProjectPath;
+        private set
+        {
+            if (_currentProjectPath == value) return;
+            _currentProjectPath = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CurrentProjectName));
+        }
+    }
+
+    /// <summary>미저장 변경이 있으면 true.</summary>
+    public bool IsModified
+    {
+        get => _isModified;
+        private set
+        {
+            if (_isModified == value) return;
+            _isModified = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CurrentProjectName));
+        }
+    }
+    private bool _isModified;
+
+    /// <summary>타이틀 바 표시 이름. 미저장 변경 시 * 접두사.</summary>
+    public string CurrentProjectName =>
+        (IsModified ? "* " : "")
+        + (_currentProjectPath is not null
+            ? Path.GetFileNameWithoutExtension(_currentProjectPath)
+            : "새 프로젝트");
+
+    /// <summary>저장: 기존 파일이면 덮어쓰기, 새 프로젝트면 탐색기 열기.</summary>
+    [RelayCommand]
+    private async Task SaveProjectAsync()
+    {
+        var savePath = CurrentProjectPath ?? await PickSavePathAsync();
+        if (savePath is null) return;
+        await WriteProjectAsync(savePath);
+    }
+
+    /// <summary>다른 이름으로 저장: 항상 탐색기 열기.</summary>
+    [RelayCommand]
+    private async Task SaveProjectAsAsync()
+    {
+        var savePath = await PickSavePathAsync();
+        if (savePath is null) return;
+        await WriteProjectAsync(savePath);
+    }
+
+    private async Task<string?> PickSavePathAsync()
+    {
+        if (SaveProjectPicker is null) return null;
+        var defaultName = CurrentProjectPath is not null
+            ? Path.GetFileName(CurrentProjectPath)
+            : Segments.Count > 0
+                ? Path.GetFileNameWithoutExtension(Segments[0].FilePath) + ProjectFile.Extension
+                : "project" + ProjectFile.Extension;
+        return await SaveProjectPicker(defaultName);
+    }
+
+    private async Task WriteProjectAsync(string savePath)
+    {
+        var project = new VCutProject
+        {
+            FastMode = IsFastMode,
+            JoinSegments = MergeEnabled,
+            LastScreen = CurrentScreen,
+            Clips = [.. Segments.Select(s => new ProjectClip
+            {
+                Path = s.FilePath,
+                Ranges = [new ProjectRange { StartSeconds = s.Start.TotalSeconds, EndSeconds = s.End.TotalSeconds }],
+            })],
+            Settings = ProjectSettings.From(BuildSettings()),
+        };
+        try
+        {
+            await ProjectFile.SaveAsync(project, savePath);
+            CurrentProjectPath = savePath;
+            IsModified = false;
+            AddToRecentProjects(savePath);
+            StatusText = "프로젝트 저장: " + Path.GetFileName(savePath);
+        }
+        catch (Exception ex) { await Notify("저장 실패", ex.Message); }
+    }
+
+    /// <summary>새 프로젝트: 저장 위치 선택 → 빈 프로젝트 생성 → 편집 화면 이동.</summary>
+    [RelayCommand]
+    private async Task NewProjectAsync()
+    {
+        if (SaveProjectPicker is null) return;
+        var path = await SaveProjectPicker("새 프로젝트" + ProjectFile.Extension);
+        if (path is null) return;
+
+        foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
+        Segments.Clear();
+        SelectedSegment = null;
+        Renumber();
+
+        await WriteProjectAsync(path);   // CurrentProjectPath, 최근 목록, StatusText 일괄 처리
+        NavigateTo?.Invoke("trim");
+    }
+
+    [RelayCommand]
+    private async Task OpenProjectAsync()
+    {
+        if (OpenProjectPicker is null) return;
+        var path = await OpenProjectPicker();
+        if (path is not null) await LoadProjectFromFileAsync(path);
+    }
+
+    public async Task LoadProjectFromFileAsync(string path)
+    {
+        if (_editor is null) return;
+        VCutProject project;
+        try { project = await ProjectFile.LoadAsync(path); }
+        catch (Exception ex) { await Notify("프로젝트 열기 실패", ex.Message); return; }
+
+        foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
+        Segments.Clear();
+
+        IsFastMode = project.FastMode;
+        MergeEnabled = project.JoinSegments;
+        CurrentProjectPath = path;
+
+        ClipSegment? first = null;
+        foreach (var clip in project.Clips)
+        {
+            try
+            {
+                var info = await _editor.ProbeAsync(clip.Path);
+                var v = info.PrimaryVideo;
+                foreach (var range in clip.Ranges)
+                {
+                    var seg = new ClipSegment(clip.Path, info.Duration, v?.FrameRate ?? 30.0)
+                    {
+                        Start = TimeSpan.FromSeconds(range.StartSeconds),
+                        End = TimeSpan.FromSeconds(range.EndSeconds),
+                    };
+                    Segments.Add(seg);
+                    seg.RangeChanged += OnSegmentRangeChanged;
+                    _ = seg.LoadThumbnailAsync();
+                    first ??= seg;
+                }
+            }
+            catch
+            {
+                foreach (var range in clip.Ranges)
+                    Segments.Add(new ClipSegment(clip.Path, TimeSpan.Zero, 30.0, isMissing: true)
+                    {
+                        Start = TimeSpan.FromSeconds(range.StartSeconds),
+                        End = TimeSpan.FromSeconds(range.EndSeconds),
+                    });
+            }
+        }
+        Renumber();
+        IsModified = false;
+        if (first is not null) SelectedSegment = first;
+        AddToRecentProjects(path);
+        StatusText = $"프로젝트 열기: {Path.GetFileName(path)}  ({Segments.Count}개 구간)";
+        NavigateTo?.Invoke(project.LastScreen);
+    }
+
+    private void AddToRecentProjects(string path)
+    {
+        var s = SettingsStore.Current;
+        s.RecentProjects.Remove(path);
+        s.RecentProjects.Insert(0, path);
+        if (s.RecentProjects.Count > 10)
+            s.RecentProjects.RemoveRange(10, s.RecentProjects.Count - 10);
+        SettingsStore.Save(s);
+        RefreshRecentProjects();
+    }
+
     // ════════════════ 파일 열기 / 구간 목록 ════════════════
 
     [RelayCommand]
@@ -187,7 +416,8 @@ public sealed partial class MainViewModel : ObservableObject
                     End = info.Duration,
                 };
                 Segments.Add(seg);
-                seg.PropertyChanged += OnSegmentRangeChanged;
+                seg.RangeChanged += OnSegmentRangeChanged;
+                _ = seg.LoadThumbnailAsync();
                 first ??= seg;
             }
             catch (Exception ex)
@@ -208,7 +438,7 @@ public sealed partial class MainViewModel : ObservableObject
         int firstIdx = Segments.IndexOf(toRemove[0]);
         foreach (var seg in toRemove)
         {
-            seg.PropertyChanged -= OnSegmentRangeChanged;
+            seg.RangeChanged -= OnSegmentRangeChanged;
             Segments.Remove(seg);
         }
         Renumber();
@@ -223,17 +453,45 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void MoveClipDown() => Move(1);
 
+    internal bool IsMovingItem { get; set; }
+
     private void Move(int dir)
     {
-        if (SelectedSegment is null) return;
-        int i = Segments.IndexOf(SelectedSegment);
-        int j = i + dir;
-        if (j < 0 || j >= Segments.Count) return;
-        Segments.Move(i, j);
+        var selected = Segments.Where(s => s.IsSelected).ToList();
+        if (selected.Count == 0) return;
+
+        IsMovingItem = true;
+
+        if (dir < 0) // 위로: 위에서부터 처리
+        {
+            var ordered = selected.OrderBy(s => Segments.IndexOf(s)).ToList();
+            if (Segments.IndexOf(ordered[0]) == 0) { IsMovingItem = false; return; }
+            foreach (var seg in ordered)
+            {
+                int i = Segments.IndexOf(seg);
+                Segments.Move(i, i - 1);
+            }
+        }
+        else // 아래로: 아래서부터 처리
+        {
+            var ordered = selected.OrderByDescending(s => Segments.IndexOf(s)).ToList();
+            if (Segments.IndexOf(ordered[0]) == Segments.Count - 1) { IsMovingItem = false; return; }
+            foreach (var seg in ordered)
+            {
+                int i = Segments.IndexOf(seg);
+                Segments.Move(i, i + 1);
+            }
+        }
+
+        // IsMovingItem은 RequestSelectionSync에서 지연 해제 — ListView의 비동기 SelectionChanged를 차단
         Renumber();
+        if (RequestSelectionSync is not null)
+            RequestSelectionSync();
+        else
+            IsMovingItem = false;
     }
 
-    private void Renumber()
+    internal void Renumber()
     {
         for (int i = 0; i < Segments.Count; i++) Segments[i].DisplayIndex = i + 1;
         OnPropertyChanged(nameof(HasSegments)); OnPropertyChanged(nameof(HasNoSegments));
@@ -244,7 +502,27 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>선택 구간이 바뀌면 미리보기/타임라인을 그 구간으로 전환.</summary>
     partial void OnSelectedSegmentChanged(ClipSegment? value)
     {
-        if (value is null) return;
+        if (value is null)
+        {
+            SourcePath = null;
+            MediaDuration = TimeSpan.Zero;
+            MediaSummary = "동영상을 불러오세요.";
+            TrimStart = TimeSpan.Zero;
+            TrimEnd = TimeSpan.Zero;
+            ClearPreview?.Invoke();
+            return;
+        }
+        if (value.IsMissing)
+        {
+            SourcePath = null;
+            MediaDuration = TimeSpan.Zero;
+            MediaSummary = $"{value.FileName}  ·  파일 없음";
+            TrimStart = TimeSpan.Zero;
+            TrimEnd = TimeSpan.Zero;
+            ClearPreview?.Invoke();
+            NotifyCommands();
+            return;
+        }
         _syncingSegment = true;
         SourcePath = value.FilePath;
         MediaDuration = value.Duration;
@@ -285,6 +563,7 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedSegment.VideoRotation = VideoRotation;
             SelectedSegment.FlipH = FlipH;
             SelectedSegment.FlipV = FlipV;
+            IsModified = true;
         }
     }
 
@@ -304,10 +583,10 @@ public sealed partial class MainViewModel : ObservableObject
         else OnPropertyChanged(nameof(TotalDurationText));
     }
 
-    private void OnSegmentRangeChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnSegmentRangeChanged(ClipSegment _)
     {
-        if (e.PropertyName is nameof(ClipSegment.Start) or nameof(ClipSegment.End))
-            OnPropertyChanged(nameof(TotalDurationText));
+        OnPropertyChanged(nameof(TotalDurationText));
+        IsModified = true;
     }
 
     // ════════════════ 시작(구간 목록 실행) ════════════════
@@ -423,8 +702,70 @@ public sealed partial class MainViewModel : ObservableObject
     // ════════════════ 프레임 캡처 ════════════════
 
     [RelayCommand(CanExecute = nameof(CanRun))]
-    private Task CaptureFrameAsync() => RunAsync(async (editor, _, _, ct) =>
-        await editor.CaptureFrameAsync(SourcePath!, PlayPosition, null, ct));
+    private async Task CaptureFrameAsync()
+    {
+        if (_editor is null) return;
+        IsBusy = true;
+        NotifyCommands();
+        _cts = new CancellationTokenSource();
+        try
+        {
+            var result = await _editor.CaptureFrameAsync(
+                SourcePath!, PlayPosition,
+                SettingsStore.Current.ResolveCaptureDir(SourcePath!),
+                _cts.Token);
+            if (result.Success)
+            {
+                StatusText = "캡처 완료";
+                if (result.OutputFiles.Count > 0)
+                {
+                    var s = SettingsStore.Current;
+                    bool open;
+                    if (s.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysOpen)
+                        open = true;
+                    else if (s.CaptureOpenFolderMode == CaptureOpenFolderMode.NeverOpen)
+                        open = false;
+                    else if (ShowConfirm is not null)
+                    {
+                        var (confirmed, dontAskAgain) = await ShowConfirm("캡처 완료", "저장 폴더를 여시겠습니까?");
+                        open = confirmed;
+                        if (dontAskAgain)
+                        {
+                            s.CaptureOpenFolderMode = confirmed
+                                ? CaptureOpenFolderMode.AlwaysOpen
+                                : CaptureOpenFolderMode.NeverOpen;
+                            SettingsStore.Save(s);
+                        }
+                    }
+                    else open = false;
+
+                    if (open)
+                    {
+                        try { Process.Start(new ProcessStartInfo("explorer.exe",
+                            $"/select,\"{result.OutputFiles[0]}\"") { UseShellExecute = true }); }
+                        catch { }
+                    }
+                }
+            }
+            else
+            {
+                StatusText = "캡처 실패: " + result.ErrorMessage;
+                await Notify("캡처 실패", result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = "오류: " + ex.Message;
+            await Notify("오류", ex.Message);
+        }
+        finally
+        {
+            IsBusy = false;
+            _cts?.Dispose();
+            _cts = null;
+            NotifyCommands();
+        }
+    }
 
     // ════════════════ 오디오 제거(고속) / remux ════════════════
 

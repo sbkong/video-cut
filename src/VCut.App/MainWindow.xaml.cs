@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using VCut.App.ViewModels;
@@ -19,10 +20,16 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Title = "v-cut — 동영상 편집기";
+        var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        Title = ver is null ? "v-cut" : $"v-cut {ver.Major}.{ver.Minor}.{ver.Build}";
 
         VM.FilePicker = PickFilesAsync;
         VM.ShowMessage = ShowMessageAsync;
+        VM.ShowConfirm = (t, m) => ShowConfirmAsync(t, m);
+        VM.SaveProjectPicker = PickSaveProjectAsync;
+        VM.OpenProjectPicker = PickOpenProjectAsync;
+        VM.NavigateTo = screen => ShowScreen(screen);
+        VM.RequestSelectionSync = SyncListViewSelection;
         VM.PropertyChanged += OnVmPropertyChanged;
         VM.LoadPreview = (path, fps) =>
         {
@@ -30,15 +37,64 @@ public sealed partial class MainWindow : Window
             Preview.SetSource(path, VM.MediaDuration);
             Preview.Volume = VM.SelectedSegment?.Volume ?? 1.0;
         };
+        VM.ClearPreview = () => Preview.Clear();
         Preview.PositionChanged += (s, pos) => VM.PlayPosition = pos;
         Preview.VolumeChanged  += (s, v)   => { if (VM.SelectedSegment is { } seg) seg.Volume = v; };
+
+        // PointerPressed는 SelectionChanged보다 먼저 발화 → 다중 선택 보존용
+        SegmentList.AddHandler(UIElement.PointerPressedEvent,
+            new PointerEventHandler(OnSegmentListPointerPressed), handledEventsToo: true);
+        // PointerReleased: 드래그 없는 클릭이면 _preSelectionDrag를 정리하고 IsSelected 재동기화
+        SegmentList.AddHandler(UIElement.PointerReleasedEvent,
+            new PointerEventHandler(OnSegmentListPointerReleased), handledEventsToo: true);
+
+        _segmentContextFlyout = new MenuFlyout();
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "제거",        Command = VM.RemoveSelectedClipCommand, Icon = new FontIcon { Glyph = "" } });
+        _segmentContextFlyout.Items.Add(new MenuFlyoutSeparator());
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "위로 이동",   Command = VM.MoveClipUpCommand,          Icon = new FontIcon { Glyph = "" } });
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "아래로 이동", Command = VM.MoveClipDownCommand,        Icon = new FontIcon { Glyph = "" } });
 
         SetupShortcuts();
         ShowScreen("home");
 
         if (AppWindow is { } aw)
+        {
             aw.Resize(new Windows.Graphics.SizeInt32(1320, 880));
+            var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
+            if (System.IO.File.Exists(iconPath))
+                aw.SetIcon(iconPath);
+        }
+
+        AppWindow.Closing += async (sender, args) =>
+        {
+            if (_confirmClose || !VM.IsModified) return;
+            args.Cancel = true;
+
+            var dlg = new ContentDialog
+            {
+                Title = "저장하지 않은 변경 사항",
+                Content = "프로젝트에 저장되지 않은 변경 사항이 있습니다.\n저장하시겠습니까?",
+                PrimaryButtonText = "저장",
+                SecondaryButtonText = "저장 안 함",
+                CloseButtonText = "취소",
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = Root.XamlRoot,
+            };
+            var result = await dlg.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                await VM.SaveProjectCommand.ExecuteAsync(null);
+                if (!VM.IsModified) { _confirmClose = true; Close(); }
+            }
+            else if (result == ContentDialogResult.Secondary)
+            {
+                _confirmClose = true;
+                Close();
+            }
+        };
     }
+
+    private bool _confirmClose;
 
     // ════════ 화면 전환(홈/편집) ════════
     private void ShowScreen(string screen)
@@ -56,6 +112,7 @@ public sealed partial class MainWindow : Window
             _ => "자르기 구간 목록",
         };
         if (screen == "merge") VM.MergeEnabled = true;
+        if (!home) VM.CurrentScreen = screen;
     }
 
     private void OnRailHome(object s, RoutedEventArgs e) => ShowScreen("home");
@@ -76,6 +133,9 @@ public sealed partial class MainWindow : Window
         AddAccel(VirtualKey.F2, VirtualKeyModifiers.None, () => _ = VM.OpenCommand.ExecuteAsync(null));
         AddAccel(VirtualKey.F5, VirtualKeyModifiers.None, OpenSettings);
         AddAccel(VirtualKey.O, VirtualKeyModifiers.Control, () => _ = VM.OpenCommand.ExecuteAsync(null));
+        AddAccel(VirtualKey.S, VirtualKeyModifiers.Control, () => _ = VM.SaveProjectCommand.ExecuteAsync(null));
+        AddAccel(VirtualKey.S, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, () => _ = VM.SaveProjectAsCommand.ExecuteAsync(null));
+        AddAccel(VirtualKey.P, VirtualKeyModifiers.Control, () => _ = VM.OpenProjectCommand.ExecuteAsync(null));
         AddAccel(VirtualKey.Delete, VirtualKeyModifiers.None, () => VM.RemoveSelectedClipCommand.Execute(null));
     }
 
@@ -107,6 +167,70 @@ public sealed partial class MainWindow : Window
 
     private void OnOpenSettings(object sender, RoutedEventArgs e) => OpenSettings();
     private void OpenSettings() => new SettingsWindow().Activate();
+    private void OnExit(object sender, RoutedEventArgs e) => Application.Current.Exit();
+
+    private async void OnSaveProject(object sender, RoutedEventArgs e) =>
+        await VM.SaveProjectCommand.ExecuteAsync(null);
+
+    private async void OnSaveProjectAs(object sender, RoutedEventArgs e) =>
+        await VM.SaveProjectAsCommand.ExecuteAsync(null);
+
+    private async void OnOpenProject(object sender, RoutedEventArgs e) =>
+        await VM.OpenProjectCommand.ExecuteAsync(null);
+
+    private async void OnRecentProjectClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string path })
+            await HandleRecentProjectAsync(path);
+    }
+
+    private async Task HandleRecentProjectAsync(string path)
+    {
+        if (!File.Exists(path))
+        {
+            var dlg = new ContentDialog
+            {
+                Title = "파일 없음",
+                Content = "이동되었거나 제거되었습니다.\n목록에서 지울까요?",
+                PrimaryButtonText = "목록에서 제거",
+                CloseButtonText = "취소",
+                XamlRoot = Root.XamlRoot,
+            };
+            if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+                VM.RemoveRecentProject(path);
+            return;
+        }
+        await VM.LoadProjectFromFileAsync(path);
+    }
+
+    // 프로젝트 드롭다운 열릴 때 최근 프로젝트 동적 추가
+    private const int ProjectFlyoutBaseCount = 5; // 새, 열기, ---, 저장, 다른이름으로저장
+
+    private void OnProjectFlyoutOpening(object? sender, object e)
+    {
+        while (ProjectFlyout.Items.Count > ProjectFlyoutBaseCount)
+            ProjectFlyout.Items.RemoveAt(ProjectFlyoutBaseCount);
+
+        if (VM.RecentProjects.Count == 0) return;
+
+        ProjectFlyout.Items.Add(new MenuFlyoutSeparator());
+        foreach (var recent in VM.RecentProjects)
+        {
+            var item = new MenuFlyoutItem
+            {
+                Text = recent.IsMissing ? recent.FileName + "  (없음)" : recent.FileName,
+                Tag = recent.Path,
+                Opacity = recent.MissingOpacity,
+            };
+            ToolTipService.SetToolTip(item, recent.Directory);
+            item.Click += async (s, _) =>
+            {
+                if (s is MenuFlyoutItem { Tag: string path })
+                    await HandleRecentProjectAsync(path);
+            };
+            ProjectFlyout.Items.Add(item);
+        }
+    }
 
     private void OnSetStartToCurrent(object sender, RoutedEventArgs e) => VM.TrimStart = Preview.Position;
     private void OnSetEndToCurrent(object sender, RoutedEventArgs e) => VM.TrimEnd = Preview.Position;
@@ -127,6 +251,7 @@ public sealed partial class MainWindow : Window
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(MainViewModel.SelectedSegment) || _syncingListView) return;
+        System.Diagnostics.Debug.WriteLine($"[SEL] OnVmPropertyChanged: target={VM.SelectedSegment?.FileName ?? "null"} syncing={_syncingListView} moving={VM.IsMovingItem}");
         _syncingListView = true;
         var target = VM.SelectedSegment;
         foreach (var seg in VM.Segments)
@@ -137,55 +262,123 @@ public sealed partial class MainWindow : Window
         _syncingListView = false;
     }
 
+    private void SyncListViewSelection()
+    {
+        var isSelected = VM.Segments.Where(s => s.IsSelected).Select(s => s.FileName).ToList();
+        System.Diagnostics.Debug.WriteLine($"[SEL] SyncListViewSelection called: IsSelected=[{string.Join(",", isSelected)}] moving={VM.IsMovingItem}");
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"[SEL] outer TryEnqueue: syncing={_syncingListView} moving={VM.IsMovingItem}");
+            _syncingListView = true;
+            SegmentList.SelectedItems.Clear();
+            foreach (var seg in VM.Segments.Where(s => s.IsSelected))
+                SegmentList.SelectedItems.Add(seg);
+            System.Diagnostics.Debug.WriteLine($"[SEL] outer TryEnqueue done: SelectedItems.Count={SegmentList.SelectedItems.Count}");
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[SEL] inner TryEnqueue: SelectedItems.Count={SegmentList.SelectedItems.Count} syncing={_syncingListView} moving={VM.IsMovingItem}");
+                VM.IsMovingItem = false;
+                _syncingListView = false;
+            });
+        });
+    }
+
     private void OnSegmentListSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_syncingListView) return;
-        foreach (var item in e.RemovedItems.OfType<ClipSegment>())
-            item.IsSelected = false;
-        foreach (var item in e.AddedItems.OfType<ClipSegment>())
-            item.IsSelected = true;
+        System.Diagnostics.Debug.WriteLine($"[SEL] SelectionChanged: added=[{string.Join(",", e.AddedItems.OfType<ClipSegment>().Select(s => s.FileName))}] removed=[{string.Join(",", e.RemovedItems.OfType<ClipSegment>().Select(s => s.FileName))}] syncing={_syncingListView} moving={VM.IsMovingItem} saved={_preSelectionDrag?.Count ?? 0}");
+        if (_syncingListView || VM.IsMovingItem) return;
+
+        // _preSelectionDrag가 있으면 드래그 직전 WinUI 3가 발화시키는 SelectionChanged일 수 있음
+        // → IsSelected 플래그를 건드리지 않고 VM.SelectedSegment만 업데이트 (DragItemsCompleted에서 복원)
+        bool possibleDragInit = _preSelectionDrag is { Count: > 1 }
+            && e.RemovedItems.Count > 0
+            && e.RemovedItems.OfType<ClipSegment>().All(s => _preSelectionDrag!.Contains(s));
+
+        if (!possibleDragInit)
+        {
+            foreach (var item in e.RemovedItems.OfType<ClipSegment>())
+                item.IsSelected = false;
+            foreach (var item in e.AddedItems.OfType<ClipSegment>())
+                item.IsSelected = true;
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("[SEL] SelectionChanged: drag-init 감지, IsSelected 유지");
+        }
+
         _syncingListView = true;
         VM.SelectedSegment = e.AddedItems.OfType<ClipSegment>().LastOrDefault()
             ?? SegmentList.SelectedItems.OfType<ClipSegment>().LastOrDefault();
         _syncingListView = false;
     }
 
-    private void OnSegmentListPointerPressed(object sender, PointerRoutedEventArgs e)
-    {
-        if (IsOnListItem(e.OriginalSource)) return;
-        SegmentList.SelectedItems.Clear();
-    }
-
-    private void OnSegmentListPointerReleased(object sender, PointerRoutedEventArgs e)
-    {
-        if (_isDraggingItems) return;
-        if (IsOnListItem(e.OriginalSource)) return;
-        SegmentList.SelectedItems.Clear();
-    }
-
-    private static bool IsOnListItem(object? source)
-    {
-        var el = source as DependencyObject;
-        while (el != null)
-        {
-            if (el is ListViewItem) return true;
-            el = VisualTreeHelper.GetParent(el);
-        }
-        return false;
-    }
 
     // ════════ 드래그 앤 드롭 ════════
 
-    private bool _isDraggingItems;
+    private List<ClipSegment>? _preSelectionDrag;
+    private MenuFlyout _segmentContextFlyout = null!;
+
+    // 우클릭: 선택 안 된 항목이면 단독 선택, 이미 선택된 항목이면 기존 선택 유지 후 메뉴 표시
+    private void OnSegmentListRightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        if (e.OriginalSource is FrameworkElement { DataContext: ClipSegment tapped }
+            && !SegmentList.SelectedItems.Contains(tapped))
+        {
+            SegmentList.SelectedItem = tapped;
+        }
+        if (SegmentList.SelectedItems.Count == 0) return;
+        _segmentContextFlyout.ShowAt(SegmentList, new FlyoutShowOptions { Position = e.GetPosition(SegmentList) });
+        e.Handled = true;
+    }
+
+    // SelectionChanged보다 먼저 발화 → 드래그 시작 직전 다중 선택 보존
+    private void OnSegmentListPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        _preSelectionDrag = SegmentList.SelectedItems.Count > 1
+            ? SegmentList.SelectedItems.OfType<ClipSegment>().ToList()
+            : null;
+        System.Diagnostics.Debug.WriteLine($"[SEL] PointerPressed: saved={_preSelectionDrag?.Count ?? 0} items");
+    }
+
+    // 클릭 시 SelectionChanged는 PointerReleased 이후에 동기 발화 →
+    // deferred lambda가 돌 때는 이미 SelectionChanged가 처리된 이후이므로 SelectedItems가 최신 상태
+    private void OnSegmentListPointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (_preSelectionDrag == null || VM.IsMovingItem) return;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_preSelectionDrag == null || VM.IsMovingItem) return; // 드래그가 시작됐으면 DragItemsCompleted가 처리
+            System.Diagnostics.Debug.WriteLine("[SEL] PointerReleased deferred: 클릭 확정, IsSelected 재동기화");
+            _preSelectionDrag = null;
+            _syncingListView = true;
+            foreach (var seg in VM.Segments)
+                seg.IsSelected = SegmentList.SelectedItems.Contains(seg);
+            _syncingListView = false;
+        });
+    }
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
-        _isDraggingItems = true;
+        System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsStarting: SelectedItems={SegmentList.SelectedItems.Count} IsSelected={VM.Segments.Count(s => s.IsSelected)} saved={_preSelectionDrag?.Count ?? 0}");
+        VM.IsMovingItem = true;
     }
 
     private void OnDragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
     {
-        _isDraggingItems = false;
+        var saved = _preSelectionDrag;
+        _preSelectionDrag = null;
+        System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsCompleted: saved={saved?.Count ?? 0} IsSelected={VM.Segments.Count(s => s.IsSelected)}");
+
+        VM.Renumber();
+
+        if (saved is { Count: > 1 })
+        {
+            System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsCompleted: IsSelected 복원 {saved.Count}개");
+            foreach (var seg in VM.Segments)
+                seg.IsSelected = saved.Contains(seg);
+        }
+
+        SyncListViewSelection();
     }
 
     private static readonly HashSet<string> _videoExts = new(StringComparer.OrdinalIgnoreCase)
@@ -217,6 +410,33 @@ public sealed partial class MainWindow : Window
     }
 
     // ════════ 파일/메시지 ════════
+
+    private async Task<string?> PickSaveProjectAsync(string? defaultName)
+    {
+        var picker = new FileSavePicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+            SuggestedFileName = defaultName ?? "project",
+        };
+        picker.FileTypeChoices.Add("v-cut 프로젝트", [".vcproj"]);
+        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+        var file = await picker.PickSaveFileAsync();
+        return file?.Path;
+    }
+
+    private async Task<string?> PickOpenProjectAsync()
+    {
+        var picker = new FileOpenPicker
+        {
+            ViewMode = PickerViewMode.List,
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+        };
+        picker.FileTypeFilter.Add(".vcproj");
+        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+        var file = await picker.PickSingleFileAsync();
+        return file?.Path;
+    }
+
     private async Task<IReadOnlyList<string>> PickFilesAsync(bool allowMultiple)
     {
         var picker = new FileOpenPicker
@@ -250,5 +470,29 @@ public sealed partial class MainWindow : Window
             XamlRoot = Root.XamlRoot,
         };
         await dialog.ShowAsync();
+    }
+
+    private async Task<(bool confirmed, bool dontAskAgain)> ShowConfirmAsync(string title, string message)
+    {
+        var checkBox = new CheckBox
+        {
+            Content = "다시 묻지 않기",
+            Margin = new Microsoft.UI.Xaml.Thickness(0, 10, 0, 0),
+        };
+        var panel = new StackPanel { Spacing = 0 };
+        panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(checkBox);
+
+        var dialog = new ContentDialog
+        {
+            Title = title,
+            Content = panel,
+            PrimaryButtonText = "예",
+            CloseButtonText = "아니요",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = Root.XamlRoot,
+        };
+        var result = await dialog.ShowAsync();
+        return (result == ContentDialogResult.Primary, checkBox.IsChecked == true);
     }
 }

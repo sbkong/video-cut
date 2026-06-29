@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Dispatching;
+using Windows.Foundation;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.UI;
@@ -16,6 +17,8 @@ public sealed partial class VideoPreview : UserControl
     private double _prevVolume = 1.0;
     private bool _updatingRange;
     private bool _settingVolume;
+    private uint _naturalVideoWidth;
+    private uint _naturalVideoHeight;
 
     public event EventHandler<TimeSpan>? PositionChanged;
     public event EventHandler<double>?   VolumeChanged;
@@ -33,6 +36,9 @@ public sealed partial class VideoPreview : UserControl
         RangeBar.SeekRequested += OnRangeBarSeek;
         RangeBar.StartChanged  += OnRangeBarStartChanged;
         RangeBar.EndChanged    += OnRangeBarEndChanged;
+
+        // 컨테이너 크기가 바뀌면 클립 갱신 + 회전 스케일 재계산
+        Player.SizeChanged += (_, _) => { UpdatePlayerClip(); ApplyTransform(); };
     }
 
     // ── 공개 속성 ────────────────────────────────────────────────────────
@@ -91,11 +97,47 @@ public sealed partial class VideoPreview : UserControl
         DependencyProperty.Register(nameof(FlipV), typeof(bool), typeof(VideoPreview),
             new PropertyMetadata(false, (d, e) => ((VideoPreview)d).ApplyTransform()));
 
+    // PlayerBorder를 클립해 스케일 업 시 블랙바가 하단 컨트롤을 가리지 않게 방지
+    private void UpdatePlayerClip()
+    {
+        if (Player.ActualWidth > 0 && Player.ActualHeight > 0)
+            PlayerBorder.Clip = new RectangleGeometry
+            {
+                Rect = new Rect(0, 0, Player.ActualWidth, Player.ActualHeight),
+            };
+    }
+
     private void ApplyTransform()
     {
         PlayerTransform.Rotation = VideoRotation;
-        PlayerTransform.ScaleX   = FlipH ? -1 : 1;
-        PlayerTransform.ScaleY   = FlipV ? -1 : 1;
+
+        double scale = 1.0;
+        bool rotated90 = VideoRotation % 180 != 0;
+
+        if (rotated90 && Player.ActualWidth > 0 && Player.ActualHeight > 0)
+        {
+            double wc = Player.ActualWidth, hc = Player.ActualHeight;
+
+            if (_naturalVideoWidth > 0 && _naturalVideoHeight > 0)
+            {
+                // 영상 자연 해상도 기준으로 계산:
+                //   origScale = 원본 영상이 컨테이너에 맞는 비율
+                //   fitScale  = 90° 회전 후 영상이 컨테이너에 맞는 비율
+                //   => MediaPlayerElement 전체를 fitScale/origScale 배 스케일
+                double wv = _naturalVideoWidth, hv = _naturalVideoHeight;
+                double origScale = Math.Min(wc / wv, hc / hv);
+                double fitScale  = Math.Min(wc / hv, hc / wv);
+                if (origScale > 0) scale = fitScale / origScale;
+            }
+            else
+            {
+                // 자연 해상도 미확정 시 단순 비율 축소(잘림 없는 안전 폴백)
+                scale = Math.Min(wc, hc) / Math.Max(wc, hc);
+            }
+        }
+
+        PlayerTransform.ScaleX = (FlipH ? -1 : 1) * scale;
+        PlayerTransform.ScaleY = (FlipV ? -1 : 1) * scale;
     }
 
     public TimeSpan Duration
@@ -156,6 +198,7 @@ public sealed partial class VideoPreview : UserControl
 
     public void SetSource(string filePath, TimeSpan duration)
     {
+        LoadingOverlay.Visibility = Visibility.Visible;
         Player.Source = MediaSource.CreateFromUri(new Uri(filePath));
         var str = "00:00:00.00 / " + Format(duration);
         PositionText.Text  = str;
@@ -165,8 +208,11 @@ public sealed partial class VideoPreview : UserControl
 
     public void Clear()
     {
+        _naturalVideoWidth  = 0;
+        _naturalVideoHeight = 0;
         Player.MediaPlayer.Pause();
         Player.Source = null;
+        LoadingOverlay.Visibility = Visibility.Collapsed;
         RangeBar.Position = TimeSpan.Zero;
         RangeBar.Duration = TimeSpan.Zero;
         const string zero = "00:00:00.00 / 00:00:00.00";
@@ -182,6 +228,10 @@ public sealed partial class VideoPreview : UserControl
     {
         _dispatcher.TryEnqueue(() =>
         {
+            _naturalVideoWidth  = sender.PlaybackSession.NaturalVideoWidth;
+            _naturalVideoHeight = sender.PlaybackSession.NaturalVideoHeight;
+            ApplyTransform(); // 자연 해상도 확정 후 스케일 재계산
+            LoadingOverlay.Visibility = Visibility.Collapsed;
             var dur = sender.PlaybackSession.NaturalDuration;
             Duration          = dur;
             RangeBar.Duration = dur;

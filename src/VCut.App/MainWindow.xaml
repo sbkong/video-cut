@@ -12,14 +12,69 @@
 
     <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}" KeyboardAcceleratorPlacementMode="Hidden">
 
-        <!-- ════════ 상단 타이틀 스트립 ════════ -->
-        <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,Auto,*,Auto">
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="12,0">
-                <TextBlock Text="v-cut" FontSize="17" FontWeight="Bold" Foreground="{StaticResource BcTextBrush}" />
-                <Border Background="{StaticResource BcAccentBrush}" CornerRadius="3" Padding="5,1" VerticalAlignment="Center">
-                    <TextBlock Text="PERSONAL" FontSize="9" FontWeight="SemiBold" Foreground="White" />
-                </Border>
-            </StackPanel>
+        <!-- ════════ 메뉴 바 ════════ -->
+        <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,Auto,Auto,*">
+
+            <!-- 앱 아이콘 -->
+            <Border Grid.Column="0" Width="26" Height="26" Background="{StaticResource BcAccentBrush}" CornerRadius="7"
+                    VerticalAlignment="Center" Margin="12,0,0,0">
+                <FontIcon Glyph="&#xE8C6;" FontSize="13" Foreground="White" />
+            </Border>
+
+            <!-- ≡ 메뉴 버튼 -->
+            <Button Grid.Column="1" Height="44" Padding="12,0" VerticalAlignment="Stretch" Margin="8,0,0,0"
+                    Background="Transparent" BorderThickness="0">
+                <FontIcon Glyph="&#xE700;" FontSize="15" Foreground="{StaticResource BcTextBrush}" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="Bottom">
+                        <MenuFlyoutItem Text="환경 설정" Click="OnOpenSettings">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="v-cut 정보" Click="OnRailInfo">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE946;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="종료" Click="OnExit">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+
+            <!-- 프로젝트 드롭다운 -->
+            <Button Grid.Column="2" Height="44" Padding="12,0" VerticalAlignment="Stretch" Margin="2,0"
+                    Background="Transparent" BorderThickness="0">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="{x:Bind VM.CurrentProjectName, Mode=OneWay}"
+                               VerticalAlignment="Center" FontSize="13"
+                               Foreground="{StaticResource BcTextBrush}" />
+                    <FontIcon Glyph="&#xE70D;" FontSize="9" VerticalAlignment="Center"
+                              Foreground="{StaticResource BcTextSecondaryBrush}" Margin="0,2,0,0" />
+                </StackPanel>
+                <Button.Flyout>
+                    <MenuFlyout x:Name="ProjectFlyout" Placement="Bottom" Opening="OnProjectFlyoutOpening">
+                        <MenuFlyoutItem Text="새 프로젝트" Command="{x:Bind VM.NewProjectCommand}">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="열기..." Command="{x:Bind VM.OpenProjectCommand}">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8DA;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem Text="저장" Command="{x:Bind VM.SaveProjectCommand}">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74E;" /></MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
+                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="다른 이름으로 저장" Command="{x:Bind VM.SaveProjectAsCommand}">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE792;" /></MenuFlyoutItem.Icon>
+                            <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+Shift+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
+            </Button>
+
+            <!-- 빈 드래그 영역 -->
+            <Grid Grid.Column="3" />
         </Grid>
 
         <!-- ════════ 본문: 레일 + 구간목록 + 미리보기 ════════ -->
@@ -33,10 +88,7 @@
                     <Button x:Name="RailSplit" Style="{StaticResource RailButtonStyle}" Click="OnRailSplit" ToolTipService.ToolTip="나누기"><FontIcon Glyph="&#xE8CA;" /></Button>
                     <Button x:Name="RailMerge" Style="{StaticResource RailButtonStyle}" Click="OnRailMerge" ToolTipService.ToolTip="합치기"><FontIcon Glyph="&#xE8E9;" /></Button>
                 </StackPanel>
-                <StackPanel Grid.Row="2">
-                    <Button Style="{StaticResource RailButtonStyle}" Click="OnRailInfo" ToolTipService.ToolTip="정보"><FontIcon Glyph="&#xE946;" /></Button>
-                    <Button Style="{StaticResource RailButtonStyle}" Click="OnOpenSettings" ToolTipService.ToolTip="환경 설정"><FontIcon Glyph="&#xE713;" /></Button>
-                </StackPanel>
+                <StackPanel Grid.Row="2" />
             </Grid>
 
             <!-- 편집 화면(구간목록 + 미리보기) -->
@@ -69,12 +121,11 @@
                         <ListView x:Name="SegmentList" ItemsSource="{x:Bind VM.Segments}"
                                   Visibility="{x:Bind VM.HasSegments, Mode=OneWay}"
                                   SelectionMode="Extended" Background="Transparent"
-                                  CanReorderItems="True" AllowDrop="True"
+                                  CanReorderItems="True" CanDragItems="True" AllowDrop="True"
                                   SelectionChanged="OnSegmentListSelectionChanged"
-                                  PointerPressed="OnSegmentListPointerPressed"
-                                  PointerReleased="OnSegmentListPointerReleased"
                                   DragItemsStarting="OnDragItemsStarting"
-                                  DragItemsCompleted="OnDragItemsCompleted">
+                                  DragItemsCompleted="OnDragItemsCompleted"
+                                  RightTapped="OnSegmentListRightTapped">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
                                     <Setter Property="Padding" Value="0" />
@@ -85,15 +136,19 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ClipSegment">
                                     <Grid>
-                                        <Border Style="{StaticResource SegmentCardStyle}">
+                                        <Border Style="{StaticResource SegmentCardStyle}" Opacity="{x:Bind MissingOpacity}">
                                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                <!-- 번호 + 길이 배지 -->
+                                                <!-- 썸네일 + 길이 배지 -->
                                                 <Border Grid.Column="0" Width="56" Height="42" CornerRadius="4"
                                                         Background="{StaticResource BcPanelDarkBrush}">
                                                     <Grid>
-                                                        <TextBlock Text="{x:Bind DisplayIndex}" FontWeight="Bold" FontSize="16"
+                                                        <Image Source="{x:Bind ThumbnailSource, Mode=OneWay}"
+                                                               Stretch="UniformToFill" />
+                                                        <!-- 썸네일 로딩 전 또는 파일 없을 때 번호 표시 -->
+                                                        <TextBlock Text="{x:Bind DisplayIndex, Mode=OneWay}" FontWeight="Bold" FontSize="16"
                                                                    Foreground="{StaticResource BcTextBrush}"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   Visibility="{x:Bind ThumbnailFallbackVisibility, Mode=OneWay}" />
                                                         <Border Background="#AA000000" CornerRadius="0,0,4,4" VerticalAlignment="Bottom" Padding="2,0">
                                                             <TextBlock Text="{x:Bind DurationText}" FontSize="9" Foreground="White" HorizontalAlignment="Center" />
                                                         </Border>
@@ -103,7 +158,9 @@
                                                     <TextBlock Text="{x:Bind FileName}" Foreground="{StaticResource BcTextBrush}"
                                                                FontSize="13" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{x:Bind RangeText, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
-                                                               FontSize="11.5" />
+                                                               FontSize="11.5" Visibility="{x:Bind ExistsVisibility}" />
+                                                    <TextBlock Text="이동되거나 제거되었습니다." Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                               FontSize="11.5" Visibility="{x:Bind MissingVisibility}" />
                                                 </StackPanel>
                                             </Grid>
                                         </Border>
@@ -190,30 +247,84 @@
                 </Grid>
             </Grid>
 
-            <!-- 홈 화면 오버레이(3 타일) -->
+            <!-- 홈 화면 오버레이(3 타일 + 최근 프로젝트) -->
             <Grid x:Name="HomeOverlay" Grid.Column="1" Background="{StaticResource BcPanelDarkBrush}" Visibility="Collapsed">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18">
+
+                <!-- 브랜딩 + 타일: 항상 화면 중앙 고정 -->
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="36" Margin="0,0,0,120">
+
+                    <!-- 브랜딩 헤더 -->
+                    <StackPanel HorizontalAlignment="Center" Spacing="0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20" VerticalAlignment="Center">
+                            <Border Width="68" Height="68" Background="{StaticResource BcAccentBrush}" CornerRadius="18">
+                                <FontIcon Glyph="&#xE8C6;" FontSize="36" Foreground="White" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center" Spacing="5">
+                                <StackPanel Orientation="Horizontal" Spacing="0">
+                                    <TextBlock Text="v" FontSize="50" FontWeight="Bold"
+                                               Foreground="{StaticResource BcAccentBrush}" LineHeight="54" />
+                                    <TextBlock Text="-cut" FontSize="50" FontWeight="Bold"
+                                               Foreground="{StaticResource BcTextBrush}" LineHeight="54" />
+                                </StackPanel>
+                                <TextBlock Text="빠르고 간단한 영상 편집 도구"
+                                           FontSize="13" CharacterSpacing="30"
+                                           Foreground="{StaticResource BcTextSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 모드 타일 -->
                     <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
-                        <Button Click="OnTileTrim" Width="150" Height="150" Background="{StaticResource BcCardBrush}" CornerRadius="6">
-                            <StackPanel Spacing="10"><FontIcon Glyph="&#xE8C6;" FontSize="44" Foreground="{StaticResource BcTextBrush}" /><TextBlock Text="자르기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
+                        <Button Click="OnTileTrim" Width="158" Height="158" Background="{StaticResource BcCardBrush}" CornerRadius="10">
+                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE8C6;" FontSize="40" Foreground="{StaticResource BcAccentBrush}" /><TextBlock Text="자르기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" /></StackPanel>
                         </Button>
-                        <Button Click="OnTileSplit" Width="150" Height="150" Background="{StaticResource BcCardBrush}" CornerRadius="6">
-                            <StackPanel Spacing="10"><FontIcon Glyph="&#xE8CA;" FontSize="44" Foreground="{StaticResource BcTextBrush}" /><TextBlock Text="나누기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
+                        <Button Click="OnTileSplit" Width="158" Height="158" Background="{StaticResource BcCardBrush}" CornerRadius="10">
+                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE8CA;" FontSize="40" Foreground="{StaticResource BcAccentBrush}" /><TextBlock Text="나누기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" /></StackPanel>
                         </Button>
-                        <Button Click="OnTileMerge" Width="150" Height="150" Background="{StaticResource BcCardBrush}" CornerRadius="6">
-                            <StackPanel Spacing="10"><FontIcon Glyph="&#xE8E9;" FontSize="44" Foreground="{StaticResource BcTextBrush}" /><TextBlock Text="합치기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="15" /></StackPanel>
+                        <Button Click="OnTileMerge" Width="158" Height="158" Background="{StaticResource BcCardBrush}" CornerRadius="10">
+                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE8E9;" FontSize="40" Foreground="{StaticResource BcAccentBrush}" /><TextBlock Text="합치기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" /></StackPanel>
                         </Button>
                     </StackPanel>
-                    <TextBlock Text="영상을 자르거나 변환할 수 있습니다." Foreground="{StaticResource BcTextSecondaryBrush}" HorizontalAlignment="Center" />
                 </StackPanel>
+
+                <!-- 최근 프로젝트: 하단 고정, 타일 너비(506px)에 맞춤, 길어지면 스크롤 -->
+                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="506"
+                            Visibility="{x:Bind VM.HasRecentProjects, Mode=OneWay}"
+                            Spacing="6" Margin="0,0,0,32">
+                    <Border Height="1" Background="{StaticResource BcDividerBrush}" />
+                    <TextBlock Text="최근 프로젝트" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{StaticResource BcTextSecondaryBrush}" />
+                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                        <ItemsRepeater ItemsSource="{x:Bind VM.RecentProjects, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="2" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RecentProjectItem">
+                                    <Button Tag="{x:Bind Path}" Click="OnRecentProjectClick"
+                                            Background="Transparent" BorderThickness="0"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Padding="8,6" Opacity="{x:Bind MissingOpacity}">
+                                        <StackPanel Spacing="1">
+                                            <TextBlock Text="{x:Bind FileName}" FontSize="13"
+                                                       Foreground="{StaticResource BcTextBrush}" />
+                                            <TextBlock Text="{x:Bind Directory}" FontSize="11"
+                                                       Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </ScrollViewer>
+                </StackPanel>
+
             </Grid>
         </Grid>
 
         <!-- ════════ 하단 바 ════════ -->
         <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,*,Auto" Padding="12,6">
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Button Style="{StaticResource StartButtonStyle}" MinWidth="0" Width="40" Click="OnOpenClick" ToolTipService.ToolTip="영상 추가 (F2)"><FontIcon Glyph="&#xE710;" FontSize="16" /></Button>
-            </StackPanel>
+            <Grid Grid.Column="0" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0">
                 <ProgressBar Value="{x:Bind VM.ProgressValue, Mode=OneWay}" Maximum="100" />
                 <TextBlock Text="{x:Bind VM.StatusText, Mode=OneWay}" FontSize="11" Foreground="{StaticResource BcTextSecondaryBrush}" TextTrimming="CharacterEllipsis" />

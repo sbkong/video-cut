@@ -37,6 +37,12 @@ public sealed partial class SettingsWindow : Window
         SameFolderRadio.IsChecked = S.SaveFolderMode == SaveFolderMode.SameAsSource;
         CustomFolderRadio.IsChecked = S.SaveFolderMode == SaveFolderMode.Custom;
         SaveFolderBox.Text = S.SaveFolder;
+        CaptureSameFolderRadio.IsChecked = S.CaptureFolderMode == SaveFolderMode.SameAsSource;
+        CaptureCustomFolderRadio.IsChecked = S.CaptureFolderMode == SaveFolderMode.Custom;
+        CaptureFolderBox.Text = S.CaptureFolder;
+        CaptureOpenAskRadio.IsChecked    = S.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysAsk;
+        CaptureOpenAlwaysRadio.IsChecked = S.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysOpen;
+        CaptureOpenNeverRadio.IsChecked  = S.CaptureOpenFolderMode == CaptureOpenFolderMode.NeverOpen;
         TempFolderBox.Text = S.TempFolder;
         LanguageCombo.SelectedIndex = S.Language switch { "en" => 1, "ja" => 2, _ => 0 };
         HwCombo.SelectedIndex = (int)S.DefaultHardwareAccel;
@@ -49,6 +55,14 @@ public sealed partial class SettingsWindow : Window
         S.SaveFolderMode = CustomFolderRadio.IsChecked == true
             ? SaveFolderMode.Custom : SaveFolderMode.SameAsSource;
         S.SaveFolder = SaveFolderBox.Text.Trim();
+        S.CaptureFolderMode = CaptureCustomFolderRadio.IsChecked == true
+            ? SaveFolderMode.Custom : SaveFolderMode.SameAsSource;
+        S.CaptureFolder = CaptureFolderBox.Text.Trim();
+        S.CaptureOpenFolderMode = CaptureOpenAlwaysRadio.IsChecked == true
+            ? CaptureOpenFolderMode.AlwaysOpen
+            : CaptureOpenNeverRadio.IsChecked == true
+                ? CaptureOpenFolderMode.NeverOpen
+                : CaptureOpenFolderMode.AlwaysAsk;
         S.TempFolder = TempFolderBox.Text.Trim();
         S.Language = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", _ => "ko" };
         S.DefaultHardwareAccel = (HardwareAccel)Math.Max(0, HwCombo.SelectedIndex);
@@ -90,6 +104,16 @@ public sealed partial class SettingsWindow : Window
         {
             SaveFolderBox.Text = path;
             CustomFolderRadio.IsChecked = true;
+        }
+    }
+
+    private async void OnBrowseCaptureFolder(object sender, RoutedEventArgs e)
+    {
+        var path = await PickFolderAsync();
+        if (path is not null)
+        {
+            CaptureFolderBox.Text = path;
+            CaptureCustomFolderRadio.IsChecked = true;
         }
     }
 

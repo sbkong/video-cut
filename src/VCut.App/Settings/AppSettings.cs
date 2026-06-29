@@ -14,6 +14,17 @@ public enum SaveFolderMode
     Custom,
 }
 
+/// <summary>캡처 완료 후 폴더 열기 동작.</summary>
+public enum CaptureOpenFolderMode
+{
+    /// <summary>매번 물어보기.</summary>
+    AlwaysAsk,
+    /// <summary>항상 열기.</summary>
+    AlwaysOpen,
+    /// <summary>열지 않기.</summary>
+    NeverOpen,
+}
+
 /// <summary>
 /// 앱 환경설정. docx '환경 설정'의 일반/재생/파일/언어/고속 모드 항목에 대응.
 /// 실제 동작에 영향을 주는 항목은 엔진/앱 흐름에 연결되고, 나머지는 상태만 보존.
@@ -41,10 +52,16 @@ public sealed class AppSettings
     public bool UseHardwareDecoder { get; set; } = true;
 
     // ── 파일 ──
-    /// <summary>[연결] 저장 폴더 방식.</summary>
+    /// <summary>[연결] 동영상 저장 폴더 방식.</summary>
     public SaveFolderMode SaveFolderMode { get; set; } = SaveFolderMode.SameAsSource;
-    /// <summary>[연결] 지정 저장 폴더(SaveFolderMode=Custom일 때).</summary>
+    /// <summary>[연결] 지정 동영상 저장 폴더(SaveFolderMode=Custom일 때).</summary>
     public string SaveFolder { get; set; } = "";
+    /// <summary>[연결] 캡처 저장 폴더 방식.</summary>
+    public SaveFolderMode CaptureFolderMode { get; set; } = SaveFolderMode.SameAsSource;
+    /// <summary>[연결] 지정 캡처 저장 폴더(CaptureFolderMode=Custom일 때).</summary>
+    public string CaptureFolder { get; set; } = "";
+    /// <summary>[연결] 캡처 완료 후 폴더 열기 동작(매번 묻기/항상 열기/열지 않기).</summary>
+    public CaptureOpenFolderMode CaptureOpenFolderMode { get; set; } = CaptureOpenFolderMode.AlwaysAsk;
     /// <summary>임시 파일 폴더(Cache). 비우면 시스템 임시 폴더 사용.</summary>
     public string TempFolder { get; set; } = "";
 
@@ -66,7 +83,15 @@ public sealed class AppSettings
     // ── 테마 ──
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
-    public AppSettings Clone() => (AppSettings)MemberwiseClone();
+    // ── 최근 프로젝트 ──
+    public List<string> RecentProjects { get; set; } = [];
+
+    public AppSettings Clone()
+    {
+        var clone = (AppSettings)MemberwiseClone();
+        clone.RecentProjects = [.. RecentProjects];
+        return clone;
+    }
 
     /// <summary>지정한 원본 기준으로 실제 출력 폴더를 결정. null이면 호출측에서 원본 폴더 사용.</summary>
     public string? ResolveOutputDir(string sourcePath)
@@ -75,6 +100,16 @@ public sealed class AppSettings
             !string.IsNullOrWhiteSpace(SaveFolder) &&
             Directory.Exists(SaveFolder))
             return SaveFolder;
-        return null; // null → 원본과 같은 폴더(OutputNaming 기본 동작)
+        return null;
+    }
+
+    /// <summary>캡처 이미지 저장 폴더를 결정. null이면 원본 파일과 같은 폴더.</summary>
+    public string? ResolveCaptureDir(string sourcePath)
+    {
+        if (CaptureFolderMode == SaveFolderMode.Custom &&
+            !string.IsNullOrWhiteSpace(CaptureFolder) &&
+            Directory.Exists(CaptureFolder))
+            return CaptureFolder;
+        return null;
     }
 }

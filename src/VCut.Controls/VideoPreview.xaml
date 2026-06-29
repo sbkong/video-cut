@@ -11,7 +11,7 @@
     <Grid RowDefinitions="*,Auto" Background="{StaticResource BcAppBrush}">
 
         <!-- ── 영상 영역 ──────────────────────────────────────────────── -->
-        <Border Grid.Row="0" Background="Black" CornerRadius="4,4,0,0">
+        <Border x:Name="PlayerBorder" Grid.Row="0" Background="Black" CornerRadius="4,4,0,0">
             <MediaPlayerElement
                 x:Name="Player"
                 AreTransportControlsEnabled="False"
@@ -23,6 +23,15 @@
                 </MediaPlayerElement.RenderTransform>
             </MediaPlayerElement>
         </Border>
+
+        <!-- ── 로딩 오버레이 ─────────────────────────────────────────── -->
+        <Grid x:Name="LoadingOverlay" Grid.Row="0"
+              Background="#B2000000" CornerRadius="4,4,0,0"
+              Visibility="Collapsed">
+            <ProgressRing IsActive="True" Width="40" Height="40"
+                          Foreground="White"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
 
         <!-- ── 컨트롤 패널 ──────────────────────────────────────────── -->
         <Border Grid.Row="1"
