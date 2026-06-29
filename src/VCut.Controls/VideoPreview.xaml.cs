@@ -156,6 +156,7 @@ public sealed partial class VideoPreview : UserControl
 
     public void SetSource(string filePath, TimeSpan duration)
     {
+        LoadingOverlay.Visibility = Visibility.Visible;
         Player.Source = MediaSource.CreateFromUri(new Uri(filePath));
         var str = "00:00:00.00 / " + Format(duration);
         PositionText.Text  = str;
@@ -167,6 +168,7 @@ public sealed partial class VideoPreview : UserControl
     {
         Player.MediaPlayer.Pause();
         Player.Source = null;
+        LoadingOverlay.Visibility = Visibility.Collapsed;
         RangeBar.Position = TimeSpan.Zero;
         RangeBar.Duration = TimeSpan.Zero;
         const string zero = "00:00:00.00 / 00:00:00.00";
@@ -182,6 +184,7 @@ public sealed partial class VideoPreview : UserControl
     {
         _dispatcher.TryEnqueue(() =>
         {
+            LoadingOverlay.Visibility = Visibility.Collapsed;
             var dur = sender.PlaybackSession.NaturalDuration;
             Duration          = dur;
             RangeBar.Duration = dur;

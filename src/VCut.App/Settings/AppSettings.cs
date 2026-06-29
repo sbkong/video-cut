@@ -66,7 +66,15 @@ public sealed class AppSettings
     // ── 테마 ──
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
-    public AppSettings Clone() => (AppSettings)MemberwiseClone();
+    // ── 최근 프로젝트 ──
+    public List<string> RecentProjects { get; set; } = [];
+
+    public AppSettings Clone()
+    {
+        var clone = (AppSettings)MemberwiseClone();
+        clone.RecentProjects = [.. RecentProjects];
+        return clone;
+    }
 
     /// <summary>지정한 원본 기준으로 실제 출력 폴더를 결정. null이면 호출측에서 원본 폴더 사용.</summary>
     public string? ResolveOutputDir(string sourcePath)

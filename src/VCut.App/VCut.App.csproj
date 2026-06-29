@@ -17,8 +17,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
-    <ApplicationIcon></ApplicationIcon>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <AssemblyName>v-cut</AssemblyName>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +35,9 @@
 
   <ItemGroup>
     <Content Include="Assets\Fonts\JetBrainsMono-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

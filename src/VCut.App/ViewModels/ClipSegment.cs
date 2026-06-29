@@ -1,4 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Storage;
+using Windows.Storage.FileProperties;
 
 namespace VCut.App.ViewModels;
 
@@ -13,21 +17,29 @@ public sealed partial class ClipSegment : ObservableObject
     /// <summary>프레임레이트(타임코드용).</summary>
     public double FrameRate { get; }
 
-    public ClipSegment(string filePath, TimeSpan duration, double frameRate)
+    public bool IsMissing { get; }
+
+    public ClipSegment(string filePath, TimeSpan duration, double frameRate, bool isMissing = false)
     {
         FilePath = filePath;
         Duration = duration;
         FrameRate = frameRate;
+        IsMissing = isMissing;
         _end = duration;
     }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RangeText))]
     private TimeSpan _start;
+    partial void OnStartChanged(TimeSpan value) => RangeChanged?.Invoke(this);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RangeText))]
     private TimeSpan _end;
+    partial void OnEndChanged(TimeSpan value) => RangeChanged?.Invoke(this);
+
+    /// <summary>Start 또는 End가 바뀔 때만 발화. ViewModel이 구독해 TotalDuration·IsModified를 갱신한다.</summary>
+    public event Action<ClipSegment>? RangeChanged;
 
     /// <summary>목록 표시용 번호(1부터).</summary>
     [ObservableProperty] private int _displayIndex;
@@ -39,6 +51,12 @@ public sealed partial class ClipSegment : ObservableObject
 
     public Microsoft.UI.Xaml.Visibility SelectedVisibility =>
         IsSelected ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    public Microsoft.UI.Xaml.Visibility MissingVisibility =>
+        IsMissing ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+    public Microsoft.UI.Xaml.Visibility ExistsVisibility =>
+        IsMissing ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+    public double MissingOpacity => IsMissing ? 0.45 : 1.0;
 
     /// <summary>미리보기 회전 각도 (0/90/180/270).</summary>
     public int VideoRotation { get; set; }
@@ -55,4 +73,27 @@ public sealed partial class ClipSegment : ObservableObject
         $"{Start:hh\\:mm\\:ss\\.ff} ~ {End:hh\\:mm\\:ss\\.ff}";
 
     public string DurationText => Duration.ToString(@"mm\:ss");
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ThumbnailFallbackVisibility))]
+    private ImageSource? _thumbnailSource;
+
+    /// <summary>썸네일 로딩 전 또는 실패 시 번호를 표시.</summary>
+    public Microsoft.UI.Xaml.Visibility ThumbnailFallbackVisibility =>
+        ThumbnailSource is null ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    /// <summary>Windows Shell 썸네일 캐시에서 비동기로 썸네일을 로드한다.</summary>
+    public async Task LoadThumbnailAsync()
+    {
+        if (IsMissing) return;
+        try
+        {
+            var file = await StorageFile.GetFileFromPathAsync(FilePath);
+            using var thumb = await file.GetThumbnailAsync(ThumbnailMode.SingleItem, 128);
+            var bmp = new BitmapImage();
+            await bmp.SetSourceAsync(thumb);
+            ThumbnailSource = bmp;
+        }
+        catch { }
+    }
 }

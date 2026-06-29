@@ -19,6 +19,9 @@ public sealed class VCutProject
     /// <summary>여러 구간/파일을 하나로 합칠지 여부.</summary>
     public bool JoinSegments { get; set; }
 
+    /// <summary>마지막으로 사용한 화면 ("trim"/"split"/"merge").</summary>
+    public string LastScreen { get; set; } = "trim";
+
     public ProjectSettings Settings { get; set; } = new();
 }
 
