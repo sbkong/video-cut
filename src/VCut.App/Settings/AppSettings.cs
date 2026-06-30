@@ -83,6 +83,13 @@ public sealed class AppSettings
     // ── 테마 ──
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
+    // ── 창 크기/위치 (-1 = 미설정, OS 기본값 사용) ──
+    public int WindowWidth { get; set; } = 1320;
+    public int WindowHeight { get; set; } = 880;
+    public int WindowLeft { get; set; } = -1;
+    public int WindowTop { get; set; } = -1;
+    public bool WindowMaximized { get; set; } = false;
+
     // ── 최근 프로젝트 ──
     public List<string> RecentProjects { get; set; } = [];
 

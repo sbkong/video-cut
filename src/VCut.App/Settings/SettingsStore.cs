@@ -3,13 +3,11 @@ using System.Text.Json.Serialization;
 
 namespace VCut.App.Settings;
 
-/// <summary>환경설정을 %LOCALAPPDATA%\v-cut\settings.json에 저장/로드.</summary>
+/// <summary>환경설정을 실행 파일과 같은 폴더의 settings.json에 저장/로드.</summary>
 public static class SettingsStore
 {
-    private static readonly string Dir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "v-cut");
-
-    private static readonly string FilePath = Path.Combine(Dir, "settings.json");
+    private static readonly string FilePath =
+        Path.Combine(AppContext.BaseDirectory, "settings.json");
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -42,7 +40,6 @@ public static class SettingsStore
         Current = settings;
         try
         {
-            Directory.CreateDirectory(Dir);
             File.WriteAllText(FilePath, JsonSerializer.Serialize(settings, Options));
         }
         catch { /* 저장 실패는 무시(권한 등) */ }

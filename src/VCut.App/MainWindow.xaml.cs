@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -62,7 +63,7 @@ public sealed partial class MainWindow : Window
 
         if (AppWindow is { } aw)
         {
-            aw.Resize(new Windows.Graphics.SizeInt32(1320, 880));
+            RestoreWindowState(aw);
             var iconPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico");
             if (System.IO.File.Exists(iconPath))
                 aw.SetIcon(iconPath);
@@ -70,7 +71,11 @@ public sealed partial class MainWindow : Window
 
         AppWindow.Closing += async (sender, args) =>
         {
-            if (_confirmClose || !VM.IsModified) return;
+            if (_confirmClose || !VM.IsModified)
+            {
+                SaveWindowState();
+                return;
+            }
             args.Cancel = true;
 
             var dlg = new ContentDialog
@@ -87,10 +92,11 @@ public sealed partial class MainWindow : Window
             if (result == ContentDialogResult.Primary)
             {
                 await VM.SaveProjectCommand.ExecuteAsync(null);
-                if (!VM.IsModified) { _confirmClose = true; Close(); }
+                if (!VM.IsModified) { SaveWindowState(); _confirmClose = true; Close(); }
             }
             else if (result == ContentDialogResult.Secondary)
             {
+                SaveWindowState();
                 _confirmClose = true;
                 Close();
             }
@@ -98,6 +104,45 @@ public sealed partial class MainWindow : Window
     }
 
     private bool _confirmClose;
+
+    // ════════ 창 크기/위치 저장·복원 ════════
+
+    private static void RestoreWindowState(Microsoft.UI.Windowing.AppWindow aw)
+    {
+        var s = Settings.SettingsStore.Current;
+        int left, top;
+        if (s.WindowLeft >= 0 && s.WindowTop >= 0)
+        {
+            left = s.WindowLeft;
+            top  = s.WindowTop;
+        }
+        else
+        {
+            var area = DisplayArea.GetFromWindowId(aw.Id, DisplayAreaFallback.Nearest).WorkArea;
+            left = area.X + Math.Max(0, (area.Width  - s.WindowWidth)  / 2);
+            top  = area.Y + Math.Max(0, (area.Height - s.WindowHeight) / 2);
+        }
+        aw.MoveAndResize(new Windows.Graphics.RectInt32(left, top, s.WindowWidth, s.WindowHeight));
+
+        if (s.WindowMaximized && aw.Presenter is OverlappedPresenter op)
+            op.Maximize();
+    }
+
+    private void SaveWindowState()
+    {
+        if (AppWindow is not { } aw) return;
+        var s = Settings.SettingsStore.Current.Clone();
+        bool maximized = aw.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized };
+        s.WindowMaximized = maximized;
+        if (!maximized)
+        {
+            s.WindowWidth  = aw.Size.Width;
+            s.WindowHeight = aw.Size.Height;
+            s.WindowLeft   = aw.Position.X;
+            s.WindowTop    = aw.Position.Y;
+        }
+        Settings.SettingsStore.Save(s);
+    }
 
     // ════════ 최소 윈도우 크기 (960×540 = 1920×1080의 1/4) ════════
 
