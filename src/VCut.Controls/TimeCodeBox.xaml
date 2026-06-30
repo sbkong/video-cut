@@ -13,27 +13,48 @@
             <Setter Property="MaxLength" Value="2" />
             <Setter Property="TextAlignment" Value="Center" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="0,2" />
+            <Setter Property="Padding" Value="0,3,0,1" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style x:Key="TcSep" TargetType="TextBlock">
             <Setter Property="Text" Value=":" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,8" />
             <Setter Property="Opacity" Value="0.6" />
+        </Style>
+        <Style x:Key="TcSemicolon" TargetType="TextBlock">
+            <Setter Property="Text" Value=";" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+        <Style x:Key="TcFrameSep" TargetType="TextBlock">
+            <Setter Property="Text" Value="f" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+            <Setter Property="Opacity" Value="0.45" />
         </Style>
     </UserControl.Resources>
 
     <Border Background="{ThemeResource ControlFillColorDefaultBrush}"
             BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1"
-            CornerRadius="4" Padding="6,3">
+            CornerRadius="4" Padding="6,0" Height="28">
         <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
             <TextBox x:Name="HourBox"   Style="{StaticResource TcField}" />
             <TextBlock Style="{StaticResource TcSep}" />
             <TextBox x:Name="MinuteBox" Style="{StaticResource TcField}" />
             <TextBlock Style="{StaticResource TcSep}" />
             <TextBox x:Name="SecondBox" Style="{StaticResource TcField}" />
-            <TextBlock Style="{StaticResource TcSep}" />
-            <TextBox x:Name="FrameBox"  Style="{StaticResource TcField}" />
+            <TextBlock Style="{StaticResource TcSemicolon}" />
+            <TextBox x:Name="FrameBox"  Style="{StaticResource TcField}" Opacity="0.45" />
+            <TextBlock Style="{StaticResource TcFrameSep}" />
         </StackPanel>
     </Border>
 </UserControl>

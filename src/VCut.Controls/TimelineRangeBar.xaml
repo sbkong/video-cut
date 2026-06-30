@@ -17,10 +17,10 @@
                 PointerReleased="OnTrackReleased">
 
             <!-- 전체 트랙 -->
-            <Border x:Name="Rail" Height="8" CornerRadius="4" Background="#3A3D42" />
+            <Border x:Name="Rail" Height="8" CornerRadius="2" Background="#3A3D42" />
 
             <!-- 재생 진행 (0 → Position) -->
-            <Border x:Name="Progress" Height="8" CornerRadius="4,0,0,4"
+            <Border x:Name="Progress" Height="8" CornerRadius="2,0,0,2"
                     Background="#3574F0" Opacity="0.38" />
 
             <!-- 선택 구간 (Start → End) -->
@@ -28,26 +28,44 @@
                     Background="#3574F0" Opacity="0.80" />
 
             <!-- 시작 핸들 -->
-            <Border x:Name="StartHandle" Width="10" Height="26" CornerRadius="3"
+            <Border x:Name="StartHandle" Width="18" Height="18" CornerRadius="3"
                     Background="#3574F0" BorderBrush="#6AA0FF" BorderThickness="1"
                     ManipulationMode="None"
                     PointerPressed="OnHandlePressed"
                     PointerMoved="OnHandleMoved"
-                    PointerReleased="OnHandleReleased" />
+                    PointerReleased="OnHandleReleased">
+                <Path Data="M0,0 L5,4.5 L0,9" Stroke="White" StrokeThickness="1.8"
+                      StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
 
             <!-- 끝 핸들 -->
-            <Border x:Name="EndHandle" Width="10" Height="26" CornerRadius="3"
+            <Border x:Name="EndHandle" Width="18" Height="18" CornerRadius="3"
                     Background="#3574F0" BorderBrush="#6AA0FF" BorderThickness="1"
                     ManipulationMode="None"
                     PointerPressed="OnHandlePressed"
                     PointerMoved="OnHandleMoved"
-                    PointerReleased="OnHandleReleased" />
+                    PointerReleased="OnHandleReleased">
+                <Path Data="M5,0 L0,4.5 L5,9" Stroke="White" StrokeThickness="1.8"
+                      StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
 
             <!-- 재생헤드 (주황, 드래그 가능) -->
-            <Rectangle x:Name="Playhead" Width="2" Height="32" Fill="#F5A623"
-                       PointerPressed="OnPlayheadPressed"
-                       PointerMoved="OnPlayheadMoved"
-                       PointerReleased="OnPlayheadReleased" />
+            <Grid x:Name="Playhead" Width="20"
+                  PointerPressed="OnPlayheadPressed"
+                  PointerMoved="OnPlayheadMoved"
+                  PointerReleased="OnPlayheadReleased">
+                <!-- 넓은 히트 영역 -->
+                <Rectangle Fill="Transparent" />
+                <!-- 수직 선 -->
+                <Rectangle Width="2" Fill="#F5A623" HorizontalAlignment="Center" />
+                <!-- 역삼각형 헤드 -->
+                <Path Data="M0,0 L16,0 L8,13 Z" Fill="#F5A623"
+                      Width="16" Height="13" Stretch="Fill"
+                      HorizontalAlignment="Center" VerticalAlignment="Top"
+                      Margin="0,0,0,0" />
+            </Grid>
 
             <!-- 호버 타임 툴팁 -->
             <Border x:Name="HoverTip" Visibility="Collapsed" IsHitTestVisible="False"

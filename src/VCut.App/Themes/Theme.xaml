@@ -9,7 +9,7 @@
     <Color x:Key="BcPanel">#FF2B2D30</Color>
     <Color x:Key="BcPanelDark">#FF1E1F22</Color>
     <Color x:Key="BcCard">#FF313335</Color>
-    <Color x:Key="BcCardHover">#FF383B40</Color>
+    <Color x:Key="BcCardHover">#FFF9F9FA</Color>
     <Color x:Key="BcAccent">#FF3574F0</Color>
     <Color x:Key="BcAccentHover">#FF4A83F0</Color>
     <Color x:Key="BcText">#FFBCBEC4</Color>
@@ -22,6 +22,7 @@
     <SolidColorBrush x:Key="BcPanelBrush" Color="{StaticResource BcPanel}" />
     <SolidColorBrush x:Key="BcPanelDarkBrush" Color="{StaticResource BcPanelDark}" />
     <SolidColorBrush x:Key="BcCardBrush" Color="{StaticResource BcCard}" />
+    <SolidColorBrush x:Key="BcCardHoverBrush" Color="{StaticResource BcCardHover}" />
     <SolidColorBrush x:Key="BcAccentBrush" Color="{StaticResource BcAccent}" />
     <SolidColorBrush x:Key="BcAccentHoverBrush" Color="{StaticResource BcAccentHover}" />
     <SolidColorBrush x:Key="BcTextBrush" Color="{StaticResource BcText}" />
@@ -60,6 +61,18 @@
         <Setter Property="FontSize" Value="15" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="CornerRadius" Value="4" />
+    </Style>
+
+    <!-- ════════ 취소 버튼(빨간 버튼, 처리 중 시작 버튼 자리에 표시) ════════ -->
+    <Style x:Key="CancelButtonStyle" TargetType="Button">
+        <Setter Property="MinWidth" Value="120" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#FFC24545" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="BorderThickness" Value="0" />
     </Style>
 
     <!-- ════════ 미리보기 헤더/전송용 아이콘 버튼 ════════ -->

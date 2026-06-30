@@ -60,7 +60,7 @@ public sealed partial class TimeCodeBox : UserControl
             e.Handled = true;
         };
         box.LostFocus += (s, e) => CommitFromFields();
-        box.KeyDown += (s, e) =>
+        box.PreviewKeyDown += (s, e) =>
         {
             if (e.Key == Windows.System.VirtualKey.Up) { Adjust(unit, 1); e.Handled = true; }
             else if (e.Key == Windows.System.VirtualKey.Down) { Adjust(unit, -1); e.Handled = true; }

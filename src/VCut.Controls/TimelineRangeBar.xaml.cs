@@ -1,3 +1,4 @@
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -14,7 +15,22 @@ public sealed partial class TimelineRangeBar : UserControl
     private bool    _scrubbingTrack;
     private double  _lsx, _lex;
 
-    public TimelineRangeBar() => InitializeComponent();
+    public TimelineRangeBar()
+    {
+        InitializeComponent();
+
+        // 트랙 진입/이탈: Hand ↔ Arrow
+        Track.PointerEntered += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
+        Track.PointerExited  += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Arrow);
+
+        // 핸들/재생헤드 진입: SizeWestEast, 이탈: Hand(트랙으로 복귀)
+        StartHandle.PointerEntered += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+        StartHandle.PointerExited  += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
+        EndHandle.PointerEntered   += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+        EndHandle.PointerExited    += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
+        Playhead.PointerEntered    += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
+        Playhead.PointerExited     += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
+    }
 
     // ── 이벤트 ────────────────────────────────────────────────────────────
 
@@ -111,8 +127,9 @@ public sealed partial class TimelineRangeBar : UserControl
         Progress.Width = Math.Max(0, px);
         Canvas.SetLeft(Progress, 0);
         Canvas.SetTop(Progress, midY - Progress.Height / 2);
+        Playhead.Height = Track.ActualHeight;
         Canvas.SetLeft(Playhead, px - Playhead.Width / 2);
-        Canvas.SetTop(Playhead, midY - Playhead.Height / 2);
+        Canvas.SetTop(Playhead, 0);
 
         if (_dragging is not null) return;
 

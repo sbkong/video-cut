@@ -11,6 +11,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <WindowsPackageType>None</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
     <!-- 단독 실행: .NET 런타임 + Windows App Runtime을 앱에 동봉(별도 설치 불필요) -->
     <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
@@ -35,9 +36,6 @@
 
   <ItemGroup>
     <Content Include="Assets\Fonts\JetBrainsMono-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

@@ -12,6 +12,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>12</LangVersion>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
 
   <ItemGroup>

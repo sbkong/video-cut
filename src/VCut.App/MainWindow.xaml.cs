@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -57,6 +58,8 @@ public sealed partial class MainWindow : Window
         SetupShortcuts();
         ShowScreen("home");
 
+        SetupMinWindowSize();
+
         if (AppWindow is { } aw)
         {
             aw.Resize(new Windows.Graphics.SizeInt32(1320, 880));
@@ -95,6 +98,43 @@ public sealed partial class MainWindow : Window
     }
 
     private bool _confirmClose;
+
+    // ════════ 최소 윈도우 크기 (960×540 = 1920×1080의 1/4) ════════
+
+    private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    private WndProcDelegate? _wndProc;
+    private IntPtr _originalWndProc;
+
+    [DllImport("user32.dll")] private static extern IntPtr SetWindowLongPtr(IntPtr h, int idx, IntPtr val);
+    [DllImport("user32.dll")] private static extern IntPtr GetWindowLongPtr(IntPtr h, int idx);
+    [DllImport("user32.dll")] private static extern IntPtr CallWindowProc(IntPtr prev, IntPtr h, uint msg, IntPtr w, IntPtr l);
+    [DllImport("user32.dll")] private static extern uint GetDpiForWindow(IntPtr h);
+
+    [StructLayout(LayoutKind.Sequential)] private struct POINT { public int x, y; }
+    [StructLayout(LayoutKind.Sequential)] private struct MINMAXINFO
+    {
+        public POINT ptReserved, ptMaxSize, ptMaxPosition, ptMinTrackSize, ptMaxTrackSize;
+    }
+
+    private void SetupMinWindowSize()
+    {
+        var hwnd = WindowNative.GetWindowHandle(this);
+        _wndProc = WndProc;
+        _originalWndProc = SetWindowLongPtr(hwnd, -4, Marshal.GetFunctionPointerForDelegate(_wndProc));
+    }
+
+    private IntPtr WndProc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam)
+    {
+        if (msg == 0x0024) // WM_GETMINMAXINFO
+        {
+            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            double scale = GetDpiForWindow(hwnd) / 96.0;
+            mmi.ptMinTrackSize.x = (int)(960 * scale);
+            mmi.ptMinTrackSize.y = (int)(540 * scale);
+            Marshal.StructureToPtr(mmi, lParam, true);
+        }
+        return CallWindowProc(_originalWndProc, hwnd, msg, wParam, lParam);
+    }
 
     // ════════ 화면 전환(홈/편집) ════════
     private void ShowScreen(string screen)
@@ -234,12 +274,34 @@ public sealed partial class MainWindow : Window
 
     private void OnSetStartToCurrent(object sender, RoutedEventArgs e) => VM.TrimStart = Preview.Position;
     private void OnSetEndToCurrent(object sender, RoutedEventArgs e) => VM.TrimEnd = Preview.Position;
-    private void OnRangePlayPause(object sender, RoutedEventArgs e) => Preview.ToggleRangePlay();
-    private void OnRangeStop(object sender, RoutedEventArgs e) => Preview.StopRange();
+    private void OnRangePlayPause(object sender, RoutedEventArgs e)
+    {
+        bool wasPlaying = Preview.IsPlaying;
+        Preview.ToggleRangePlay();
+        RangePlayIcon.Glyph = wasPlaying ? "" : "";
+    }
+
+    private void OnRangeStop(object sender, RoutedEventArgs e)
+    {
+        Preview.StopRange();
+        RangePlayIcon.Glyph = "";
+    }
 
     private void OnCaptureClick(object sender, RoutedEventArgs e)
     {
         if (VM.CaptureFrameCommand.CanExecute(null)) VM.CaptureFrameCommand.Execute(null);
+    }
+
+    private void OnCardPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border card)
+            card.Background = (SolidColorBrush)Application.Current.Resources["BcCardHoverBrush"];
+    }
+
+    private void OnCardPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Border card)
+            card.Background = (SolidColorBrush)Application.Current.Resources["BcCardBrush"];
     }
 
     // ════════ 다중 선택 ════════
@@ -250,6 +312,12 @@ public sealed partial class MainWindow : Window
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(MainViewModel.IsBusy))
+        {
+            StartButton.Visibility = VM.IsBusy ? Visibility.Collapsed : Visibility.Visible;
+            CancelButton.Visibility = VM.IsBusy ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
         if (e.PropertyName != nameof(MainViewModel.SelectedSegment) || _syncingListView) return;
         System.Diagnostics.Debug.WriteLine($"[SEL] OnVmPropertyChanged: target={VM.SelectedSegment?.FileName ?? "null"} syncing={_syncingListView} moving={VM.IsMovingItem}");
         _syncingListView = true;

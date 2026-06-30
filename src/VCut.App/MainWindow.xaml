@@ -92,7 +92,7 @@
             </Grid>
 
             <!-- 편집 화면(구간목록 + 미리보기) -->
-            <Grid x:Name="EditGrid" Grid.Column="1" ColumnDefinitions="340,*">
+            <Grid x:Name="EditGrid" Grid.Column="1" ColumnDefinitions="300,*">
 
                 <!-- 구간 목록 패널 -->
                 <Grid Grid.Column="0" Background="{StaticResource BcPanelBrush}" RowDefinitions="Auto,*,Auto" Padding="12"
@@ -121,6 +121,7 @@
                         <ListView x:Name="SegmentList" ItemsSource="{x:Bind VM.Segments}"
                                   Visibility="{x:Bind VM.HasSegments, Mode=OneWay}"
                                   SelectionMode="Extended" Background="Transparent"
+                                  Padding="0,0,14,0"
                                   CanReorderItems="True" CanDragItems="True" AllowDrop="True"
                                   SelectionChanged="OnSegmentListSelectionChanged"
                                   DragItemsStarting="OnDragItemsStarting"
@@ -136,7 +137,12 @@
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ClipSegment">
                                     <Grid>
-                                        <Border Style="{StaticResource SegmentCardStyle}" Opacity="{x:Bind MissingOpacity}">
+                                        <Border Style="{StaticResource SegmentCardStyle}" Opacity="{x:Bind MissingOpacity}"
+                                                PointerEntered="OnCardPointerEntered"
+                                                PointerExited="OnCardPointerExited">
+                                            <Border.BackgroundTransition>
+                                                <BrushTransition Duration="0:0:0.12" />
+                                            </Border.BackgroundTransition>
                                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                                                 <!-- 썸네일 + 길이 배지 -->
                                                 <Border Grid.Column="0" Width="56" Height="42" CornerRadius="4"
@@ -214,23 +220,50 @@
                                       FlipV="{x:Bind VM.FlipV, Mode=OneWay}" />
 
                     <!-- 구간 미세조정 -->
-                    <StackPanel Grid.Row="2" Spacing="4" Margin="0,6,0,0">
-                        <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}">
-                            <Run Text="구간 길이  " /><Run Text="{x:Bind VM.TrimDurationText, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource BcTextBrush}" />
-                        </TextBlock>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="5" VerticalAlignment="Center">
-                            <Button Content="[" MinWidth="0" Padding="8,4" Click="OnSetStartToCurrent" ToolTipService.ToolTip="[ : 시작 구간 설정" />
-                            <Button Content="]" MinWidth="0" Padding="8,4" Click="OnSetEndToCurrent" ToolTipService.ToolTip="] : 종료 구간 설정" />
-                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimStart, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
-                            <TextBlock Text="~" VerticalAlignment="Center" Foreground="{StaticResource BcTextSecondaryBrush}" Margin="2,0" />
-                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimEnd, Mode=TwoWay}" FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
-                            <Button MinWidth="0" Padding="8,4" Click="OnRangePlayPause" ToolTipService.ToolTip="구간 재생/일시정지">
-                                <TextBlock Text="[&#x25B6;]" FontSize="11" />
+                    <StackPanel Grid.Row="2" Margin="0,8,0,0" Spacing="4">
+
+                        <!-- 컨트롤 행 -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                    Spacing="6" VerticalAlignment="Center">
+
+                            <!-- 시작 설정 -->
+                            <Button MinWidth="0" MinHeight="0" Height="28" Padding="7,0" Click="OnSetStartToCurrent"
+                                    ToolTipService.ToolTip="현재 위치를 시작 구간으로 ([)">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <FontIcon Glyph="&#xE892;" FontSize="11" />
+                                    <TextBlock Text="시작" FontSize="11" VerticalAlignment="Center" />
+                                </StackPanel>
                             </Button>
-                            <Button MinWidth="0" Padding="8,4" Click="OnRangeStop" ToolTipService.ToolTip="구간 재생 중지">
+                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimStart, Mode=TwoWay}"
+                                             FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
+                            <ctl:TimeCodeBox Time="{x:Bind VM.TrimEnd, Mode=TwoWay}"
+                                             FrameRate="{x:Bind VM.FrameRate, Mode=OneWay}" />
+                            <!-- 끝 설정 -->
+                            <Button MinWidth="0" MinHeight="0" Height="28" Padding="7,0" Click="OnSetEndToCurrent"
+                                    ToolTipService.ToolTip="현재 위치를 끝 구간으로 (])">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="끝" FontSize="11" VerticalAlignment="Center" />
+                                    <FontIcon Glyph="&#xE893;" FontSize="11" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- 구분선 -->
+                            <Border Width="1" Height="18" Background="{StaticResource BcDividerBrush}"
+                                    VerticalAlignment="Center" Margin="2,0" />
+
+                            <!-- 구간 재생/정지 -->
+                            <Button MinWidth="0" MinHeight="0" Height="28" Padding="8,0" Click="OnRangePlayPause"
+                                    ToolTipService.ToolTip="구간 재생/일시정지">
+                                <FontIcon x:Name="RangePlayIcon" Glyph="&#xE768;" FontSize="13" />
+                            </Button>
+                            <Button MinWidth="0" MinHeight="0" Height="28" Padding="8,0" Click="OnRangeStop"
+                                    ToolTipService.ToolTip="구간 재생 중지">
                                 <FontIcon Glyph="&#xE71A;" FontSize="13" />
                             </Button>
+
                         </StackPanel>
+
+
                     </StackPanel>
 
                     <!-- 합치기 + 나누기 옵션 -->
@@ -249,9 +282,13 @@
 
             <!-- 홈 화면 오버레이(3 타일 + 최근 프로젝트) -->
             <Grid x:Name="HomeOverlay" Grid.Column="1" Background="{StaticResource BcPanelDarkBrush}" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="340" />
+                    <RowDefinition Height="*" MinHeight="80" />
+                </Grid.RowDefinitions>
 
-                <!-- 브랜딩 + 타일: 항상 화면 중앙 고정 -->
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="36" Margin="0,0,0,120">
+                <!-- 브랜딩 + 타일: Row 0 중앙 -->
+                <StackPanel Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="36">
 
                     <!-- 브랜딩 헤더 -->
                     <StackPanel HorizontalAlignment="Center" Spacing="0">
@@ -287,14 +324,20 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- 최근 프로젝트: 하단 고정, 타일 너비(506px)에 맞춤, 길어지면 스크롤 -->
-                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="506"
-                            Visibility="{x:Bind VM.HasRecentProjects, Mode=OneWay}"
-                            Spacing="6" Margin="0,0,0,32">
-                    <Border Height="1" Background="{StaticResource BcDividerBrush}" />
-                    <TextBlock Text="최근 프로젝트" FontSize="12" FontWeight="SemiBold"
-                               Foreground="{StaticResource BcTextSecondaryBrush}" />
-                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                <!-- 최근 프로젝트: 창 높이에 비례해 자동 조절 -->
+                <Grid Grid.Row="1" HorizontalAlignment="Center" Width="506"
+                      Visibility="{x:Bind VM.HasRecentProjects, Mode=OneWay}"
+                      Margin="0,0,0,24">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,6">
+                        <Border Height="1" Background="{StaticResource BcDividerBrush}" />
+                        <TextBlock Text="최근 프로젝트" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextSecondaryBrush}" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <ItemsRepeater ItemsSource="{x:Bind VM.RecentProjects, Mode=OneWay}">
                             <ItemsRepeater.Layout>
                                 <StackLayout Spacing="2" />
@@ -317,7 +360,7 @@
                             </ItemsRepeater.ItemTemplate>
                         </ItemsRepeater>
                     </ScrollViewer>
-                </StackPanel>
+                </Grid>
 
             </Grid>
         </Grid>
@@ -331,8 +374,10 @@
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <TextBlock Text="{x:Bind VM.EtaText, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}" />
-                <Button Content="취소" Command="{x:Bind VM.CancelCommand}" IsEnabled="{x:Bind VM.IsBusy, Mode=OneWay}" />
-                <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
+                <Grid>
+                    <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
+                    <Button x:Name="CancelButton" Content="취소" Style="{StaticResource CancelButtonStyle}" Command="{x:Bind VM.CancelCommand}" Visibility="Collapsed" />
+                </Grid>
             </StackPanel>
         </Grid>
     </Grid>

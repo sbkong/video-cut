@@ -173,9 +173,7 @@ public sealed partial class VideoPreview : UserControl
         _updatingRange = true;
         RangeBar.Duration = Duration;
         _updatingRange = false;
-        var str = "00:00:00.00 / " + Format(Duration);
-        PositionText.Text  = str;
-        PositionText2.Text = str;
+        PositionText.Text = "00:00:00.00 / " + Format(Duration);
     }
 
     private void OnTrimStartChanged()
@@ -184,6 +182,7 @@ public sealed partial class VideoPreview : UserControl
         _updatingRange = true;
         RangeBar.Start = TrimStart;
         _updatingRange = false;
+        UpdateDurationText();
     }
 
     private void OnTrimEndChanged()
@@ -192,6 +191,13 @@ public sealed partial class VideoPreview : UserControl
         _updatingRange = true;
         RangeBar.End = TrimEnd;
         _updatingRange = false;
+        UpdateDurationText();
+    }
+
+    private void UpdateDurationText()
+    {
+        var d = TrimEnd > TrimStart ? TrimEnd - TrimStart : TimeSpan.Zero;
+        DurationText.Text = Format(d);
     }
 
     // ── 미디어 소스 ──────────────────────────────────────────────────────
@@ -200,9 +206,7 @@ public sealed partial class VideoPreview : UserControl
     {
         LoadingOverlay.Visibility = Visibility.Visible;
         Player.Source = MediaSource.CreateFromUri(new Uri(filePath));
-        var str = "00:00:00.00 / " + Format(duration);
-        PositionText.Text  = str;
-        PositionText2.Text = str;
+        PositionText.Text = "00:00:00.00 / " + Format(duration);
         RangeBar.Position  = TimeSpan.Zero;
     }
 
@@ -215,10 +219,11 @@ public sealed partial class VideoPreview : UserControl
         LoadingOverlay.Visibility = Visibility.Collapsed;
         RangeBar.Position = TimeSpan.Zero;
         RangeBar.Duration = TimeSpan.Zero;
-        const string zero = "00:00:00.00 / 00:00:00.00";
-        PositionText.Text  = zero;
-        PositionText2.Text = zero;
+        PositionText.Text  = "00:00:00.00 / 00:00:00.00";
+        DurationText.Text  = "00:00:00.00";
     }
+
+    public bool IsPlaying => Session.PlaybackState == MediaPlaybackState.Playing;
 
     private MediaPlaybackSession Session => Player.MediaPlayer.PlaybackSession;
 
@@ -241,9 +246,7 @@ public sealed partial class VideoPreview : UserControl
             RangeBar.Start = TrimStart;
             RangeBar.End   = TrimEnd > TrimStart ? TrimEnd : dur;
             _updatingRange = false;
-            var str = "00:00:00.00 / " + Format(dur);
-            PositionText.Text  = str;
-            PositionText2.Text = str;
+            PositionText.Text = "00:00:00.00 / " + Format(dur);
         });
     }
 
@@ -262,9 +265,7 @@ public sealed partial class VideoPreview : UserControl
             RangeBar.Position  = pos;
             // sender.NaturalDuration은 영상 전환 직후 0 또는 이전 값일 수 있으므로
             // 바인딩으로 동기화된 Duration DP를 사용
-            var str = Format(pos) + " / " + Format(Duration);
-            PositionText.Text  = str;
-            PositionText2.Text = str;
+            PositionText.Text = Format(pos) + " / " + Format(Duration);
             PositionChanged?.Invoke(this, pos);
         });
     }
@@ -284,6 +285,11 @@ public sealed partial class VideoPreview : UserControl
 
     private void OnRangeBarSeek(object? sender, TimeSpan t)
     {
+        if (LoopButton.IsChecked == true && (t < TrimStart || t >= TrimEnd))
+        {
+            LoopButton.IsChecked = false;
+            OnLoopChanged(this, new RoutedEventArgs());
+        }
         Session.Position = t;
     }
 
@@ -292,6 +298,7 @@ public sealed partial class VideoPreview : UserControl
         _updatingRange = true;
         TrimStart = t;
         _updatingRange = false;
+        UpdateDurationText();
     }
 
     private void OnRangeBarEndChanged(object? sender, TimeSpan t)
@@ -299,6 +306,7 @@ public sealed partial class VideoPreview : UserControl
         _updatingRange = true;
         TrimEnd = t;
         _updatingRange = false;
+        UpdateDurationText();
     }
 
     // ── 트랜스포트 버튼 ───────────────────────────────────────────────────

@@ -336,36 +336,67 @@ public sealed partial class MainViewModel : ObservableObject
         MergeEnabled = project.JoinSegments;
         CurrentProjectPath = path;
 
+        int total = project.Clips.Count;
+        IsBusy = true;
+        ProgressValue = 0;
+        StatusText = total > 1 ? $"파일 분석 중… (0 / {total})" : "파일 분석 중…";
+        NotifyCommands();
+        _cts = new CancellationTokenSource();
+
         ClipSegment? first = null;
-        foreach (var clip in project.Clips)
+        try
         {
-            try
+            int idx = 0;
+            foreach (var clip in project.Clips)
             {
-                var info = await _editor.ProbeAsync(clip.Path);
-                var v = info.PrimaryVideo;
-                foreach (var range in clip.Ranges)
+                _cts.Token.ThrowIfCancellationRequested();
+                idx++;
+                if (total > 1) StatusText = $"파일 분석 중… ({idx} / {total})";
+                try
                 {
-                    var seg = new ClipSegment(clip.Path, info.Duration, v?.FrameRate ?? 30.0)
+                    var info = await _editor.ProbeAsync(clip.Path, _cts.Token);
+                    var v = info.PrimaryVideo;
+                    foreach (var range in clip.Ranges)
                     {
-                        Start = TimeSpan.FromSeconds(range.StartSeconds),
-                        End = TimeSpan.FromSeconds(range.EndSeconds),
-                    };
-                    Segments.Add(seg);
-                    seg.RangeChanged += OnSegmentRangeChanged;
-                    _ = seg.LoadThumbnailAsync();
-                    first ??= seg;
+                        var seg = new ClipSegment(clip.Path, info.Duration, v?.FrameRate ?? 30.0)
+                        {
+                            Start = TimeSpan.FromSeconds(range.StartSeconds),
+                            End = TimeSpan.FromSeconds(range.EndSeconds),
+                        };
+                        Segments.Add(seg);
+                        seg.RangeChanged += OnSegmentRangeChanged;
+                        _ = seg.LoadThumbnailAsync();
+                        first ??= seg;
+                    }
                 }
-            }
-            catch
-            {
-                foreach (var range in clip.Ranges)
-                    Segments.Add(new ClipSegment(clip.Path, TimeSpan.Zero, 30.0, isMissing: true)
-                    {
-                        Start = TimeSpan.FromSeconds(range.StartSeconds),
-                        End = TimeSpan.FromSeconds(range.EndSeconds),
-                    });
+                catch (OperationCanceledException) { throw; }
+                catch
+                {
+                    foreach (var range in clip.Ranges)
+                        Segments.Add(new ClipSegment(clip.Path, TimeSpan.Zero, 30.0, isMissing: true)
+                        {
+                            Start = TimeSpan.FromSeconds(range.StartSeconds),
+                            End = TimeSpan.FromSeconds(range.EndSeconds),
+                        });
+                }
+                ProgressValue = (double)idx / total * 100;
             }
         }
+        catch (OperationCanceledException)
+        {
+            StatusText = "취소됨";
+            Renumber();
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+            ProgressValue = 0;
+            _cts?.Dispose();
+            _cts = null;
+            NotifyCommands();
+        }
+
         Renumber();
         IsModified = false;
         if (first is not null) SelectedSegment = first;
@@ -403,28 +434,62 @@ public sealed partial class MainViewModel : ObservableObject
     public async Task AddClipsAsync(IReadOnlyList<string> paths)
     {
         if (_editor is null || paths.Count == 0) return;
-        ClipSegment? first = null;
-        foreach (var path in paths)
+
+        bool multi = paths.Count > 1;
+        if (multi)
         {
-            try
+            IsBusy = true;
+            ProgressValue = 0;
+            StatusText = $"파일 분석 중… (0 / {paths.Count})";
+            NotifyCommands();
+            _cts = new CancellationTokenSource();
+        }
+
+        ClipSegment? first = null;
+        try
+        {
+            for (int i = 0; i < paths.Count; i++)
             {
-                var info = await _editor.ProbeAsync(path);
-                var v = info.PrimaryVideo;
-                var seg = new ClipSegment(path, info.Duration, v?.FrameRate ?? 30.0)
+                if (multi)
                 {
-                    Start = TimeSpan.Zero,
-                    End = info.Duration,
-                };
-                Segments.Add(seg);
-                seg.RangeChanged += OnSegmentRangeChanged;
-                _ = seg.LoadThumbnailAsync();
-                first ??= seg;
-            }
-            catch (Exception ex)
-            {
-                await Notify("불러오기 실패", $"{Path.GetFileName(path)}\n{ex.Message}");
+                    if (_cts!.Token.IsCancellationRequested) break;
+                    StatusText = $"파일 분석 중… ({i + 1} / {paths.Count})";
+                }
+                try
+                {
+                    var ct = multi ? _cts!.Token : CancellationToken.None;
+                    var info = await _editor.ProbeAsync(paths[i], ct);
+                    var v = info.PrimaryVideo;
+                    var seg = new ClipSegment(paths[i], info.Duration, v?.FrameRate ?? 30.0)
+                    {
+                        Start = TimeSpan.Zero,
+                        End = info.Duration,
+                    };
+                    Segments.Add(seg);
+                    seg.RangeChanged += OnSegmentRangeChanged;
+                    _ = seg.LoadThumbnailAsync();
+                    first ??= seg;
+                }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex)
+                {
+                    await Notify("불러오기 실패", $"{Path.GetFileName(paths[i])}\n{ex.Message}");
+                }
+                if (multi) ProgressValue = (double)(i + 1) / paths.Count * 100;
             }
         }
+        finally
+        {
+            if (multi)
+            {
+                IsBusy = false;
+                ProgressValue = 0;
+                _cts?.Dispose();
+                _cts = null;
+                NotifyCommands();
+            }
+        }
+
         Renumber();
         if (first is not null) SelectedSegment = first;
         StatusText = $"{Segments.Count}개 구간";

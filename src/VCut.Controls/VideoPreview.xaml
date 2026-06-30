@@ -113,17 +113,17 @@
                       ColumnSpacing="6" Padding="8,0"
                       Background="{StaticResource BcRailBrush}">
 
-                    <!-- 타임코드 칩 -->
-                    <Border Grid.Column="1"
-                            Background="{StaticResource BcCardBrush}"
-                            BorderBrush="{StaticResource BcDividerBrush}"
-                            BorderThickness="1" CornerRadius="4"
-                            Padding="8,3" VerticalAlignment="Center">
-                        <TextBlock x:Name="PositionText2"
-                                   Text="00:00:00.00 / 00:00:00.00"
-                                   FontSize="11.5"
-                                   Foreground="{StaticResource BcTextBrush}" />
-                    </Border>
+                    <!-- 구간 길이 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="구간반복 길이" FontSize="10"
+                                   Foreground="{StaticResource BcTextSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="DurationText" Text="00:00:00.00"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
 
                     <!-- 범위 반복 재생 토글 -->
                     <ToggleButton Grid.Column="2" x:Name="LoopButton"
