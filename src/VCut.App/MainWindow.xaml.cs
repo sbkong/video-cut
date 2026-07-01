@@ -104,6 +104,7 @@ public sealed partial class MainWindow : Window
     }
 
     private bool _confirmClose;
+    private bool _isHomeScreen = true;
 
     // ════════ 창 크기/위치 저장·복원 ════════
 
@@ -185,6 +186,7 @@ public sealed partial class MainWindow : Window
     private void ShowScreen(string screen)
     {
         bool home = screen == "home";
+        _isHomeScreen = home;
         HomeOverlay.Visibility = home ? Visibility.Visible : Visibility.Collapsed;
         EditGrid.Visibility = home ? Visibility.Collapsed : Visibility.Visible;
 
@@ -198,6 +200,7 @@ public sealed partial class MainWindow : Window
         };
         if (screen == "merge") VM.MergeEnabled = true;
         if (!home) VM.CurrentScreen = screen;
+        UpdateStartButtonVisibility();
     }
 
     private void OnRailHome(object s, RoutedEventArgs e) => ShowScreen("home");
@@ -355,11 +358,17 @@ public sealed partial class MainWindow : Window
     // SelectedItem을 재설정해 SelectedItems 전체를 초기화하는 부작용이 있음.
     private bool _syncingListView;
 
+    private void UpdateStartButtonVisibility()
+    {
+        bool show = !VM.IsBusy && !_isHomeScreen;
+        StartButton.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.IsBusy))
         {
-            StartButton.Visibility = VM.IsBusy ? Visibility.Collapsed : Visibility.Visible;
+            UpdateStartButtonVisibility();
             CancelButton.Visibility = VM.IsBusy ? Visibility.Visible : Visibility.Collapsed;
             return;
         }

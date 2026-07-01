@@ -11,7 +11,6 @@ public sealed partial class TimelineRangeBar : UserControl
 {
     private Border? _dragging;
     private double  _dragX;
-    private bool    _draggingPlayhead;
     private bool    _scrubbingTrack;
     private double  _lsx, _lex;
 
@@ -28,8 +27,6 @@ public sealed partial class TimelineRangeBar : UserControl
         StartHandle.PointerExited  += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
         EndHandle.PointerEntered   += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
         EndHandle.PointerExited    += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
-        Playhead.PointerEntered    += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
-        Playhead.PointerExited     += (_, _) => ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
     }
 
     // ── 이벤트 ────────────────────────────────────────────────────────────
@@ -198,32 +195,6 @@ public sealed partial class TimelineRangeBar : UserControl
             else          { End   = t; EndChanged?.Invoke(this, t); }
             e.Handled = true;
         }
-    }
-
-    // ── 재생헤드 드래그 ───────────────────────────────────────────────────
-
-    private void OnPlayheadPressed(object sender, PointerRoutedEventArgs e)
-    {
-        _draggingPlayhead = true;
-        Playhead.CapturePointer(e.Pointer);
-        e.Handled = true;
-    }
-
-    private void OnPlayheadMoved(object sender, PointerRoutedEventArgs e)
-    {
-        if (!_draggingPlayhead) return;
-        var t = XToTime(e.GetCurrentPoint(Track).Position.X);
-        Position = t;
-        SeekRequested?.Invoke(this, t);
-        e.Handled = true;
-    }
-
-    private void OnPlayheadReleased(object sender, PointerRoutedEventArgs e)
-    {
-        if (!_draggingPlayhead) return;
-        Playhead.ReleasePointerCapture(e.Pointer);
-        _draggingPlayhead = false;
-        e.Handled = true;
     }
 
     // ── 트랙 클릭 + 스크럽 ───────────────────────────────────────────────
