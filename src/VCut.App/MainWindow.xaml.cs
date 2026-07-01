@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -116,6 +117,7 @@ public sealed partial class MainWindow : Window
         // Menu bar
         MenuSettings.Text    = Loc.Get("menu.settings");
         MenuAbout.Text       = Loc.Get("menu.about");
+        MenuRestart.Text     = Loc.Get("menu.restart");
         MenuExit.Text        = Loc.Get("menu.exit");
         MenuNewProject.Text  = Loc.Get("project.new");
         MenuOpenProject.Text = Loc.Get("project.open");
@@ -331,9 +333,9 @@ public sealed partial class MainWindow : Window
             await ShowMessageAsync(Loc.Get("dlg.notice"), Loc.Get("dlg.no_video_notice"));
             return;
         }
-        var dlg = new OutputSettingsDialog(VM) { XamlRoot = Root.XamlRoot };
-        var result = await dlg.ShowAsync();
-        if (result == ContentDialogResult.Primary && VM.RunComposeCommand.CanExecute(null))
+        var win = new OutputSettingsWindow(VM);
+        win.Activate();
+        if (await win.WaitAsync() && VM.RunComposeCommand.CanExecute(null))
             VM.RunComposeCommand.Execute(null);
     }
 
@@ -345,6 +347,13 @@ public sealed partial class MainWindow : Window
     private void OnOpenSettings(object sender, RoutedEventArgs e) => OpenSettings();
     private void OpenSettings() => new SettingsWindow().Activate();
     private void OnExit(object sender, RoutedEventArgs e) => Application.Current.Exit();
+
+    private void OnRestart(object sender, RoutedEventArgs e)
+    {
+        try { Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true }); }
+        catch { /* 재시작 실패 시 무시 */ }
+        Application.Current.Exit();
+    }
 
     private async void OnSaveProject(object sender, RoutedEventArgs e) =>
         await VM.SaveProjectCommand.ExecuteAsync(null);

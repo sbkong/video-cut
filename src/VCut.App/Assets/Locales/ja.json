@@ -1,6 +1,7 @@
 {
   "menu.settings": "設定",
   "menu.about": "v-cut について",
+  "menu.restart": "再起動",
   "menu.exit": "終了",
   "project.new": "新規プロジェクト",
   "project.open": "開く...",
@@ -56,6 +57,7 @@
   "settings.btn.reset": "リセット",
   "settings.btn.save": "保存",
   "settings.btn.cancel": "キャンセル",
+  "settings.btn.restart": "今すぐ再起動",
 
   "gen.warn_unseekable": "シーク不可の動画の場合に警告",
   "gen.warn_file_exists": "保存フォルダにファイルが存在する場合に警告",
@@ -108,6 +110,8 @@
   "font.note": "※ フォントの変更はアプリを再起動すると適用されます。",
 
   "out.title": "出力設定",
+  "out.save_folder": "保存フォルダ",
+  "out.folder_ph": "ソースファイルと同じ場所",
   "out.mode": "出力方式",
   "out.fast_mode": "高速モード（画質劣化なし・高速処理）",
   "out.convert_mode": "変換モード（再エンコード）",

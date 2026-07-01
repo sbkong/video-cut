@@ -35,6 +35,9 @@
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE946;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
+                        <MenuFlyoutItem x:Name="MenuRestart" Text="재시작" Click="OnRestart">
+                            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                         <MenuFlyoutItem x:Name="MenuExit" Text="종료" Click="OnExit">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>

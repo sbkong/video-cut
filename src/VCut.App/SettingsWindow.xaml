@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Window
+<local:WindowBase
     x:Class="VCut.App.SettingsWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:VCut.App"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -225,7 +226,8 @@
                 <!-- ── 언어 ── -->
                 <ScrollViewer x:Name="PanelLanguage" Padding="16" Visibility="Collapsed">
                     <StackPanel Spacing="10">
-                        <ComboBox Header="언어" x:Name="LanguageCombo" HorizontalAlignment="Stretch">
+                        <ComboBox Header="언어" x:Name="LanguageCombo" HorizontalAlignment="Stretch"
+                                  SelectionChanged="OnRestartSensitiveChanged">
                             <ComboBoxItem Content="한국어" Tag="ko"/>
                             <ComboBoxItem Content="English" Tag="en"/>
                             <ComboBoxItem Content="日本語" Tag="ja"/>
@@ -358,6 +360,7 @@
         <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" Padding="12,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         Spacing="8" VerticalAlignment="Center">
+                <Button x:Name="BtnRestart" Content="지금 재시작" Click="OnRestartNow" Visibility="Collapsed"/>
                 <Button x:Name="BtnReset" Content="초기화" Click="OnReset"/>
                 <Button x:Name="BtnCancelSettings" Content="취소" Click="OnCancel"/>
                 <Button x:Name="BtnSaveSettings" Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}"/>
@@ -365,4 +368,4 @@
         </Grid>
 
     </Grid>
-</Window>
+</local:WindowBase>

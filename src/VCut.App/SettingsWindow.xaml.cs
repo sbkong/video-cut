@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -10,7 +11,7 @@ using WinRT.Interop;
 
 namespace VCut.App;
 
-public sealed partial class SettingsWindow : Window
+public sealed partial class SettingsWindow : WindowBase
 {
     /// <summary>편집 중인 설정 사본(저장 시 영구화).</summary>
     public AppSettings S { get; private set; }
@@ -119,6 +120,7 @@ public sealed partial class SettingsWindow : Window
         TxtFontNote.Text           = Loc.Get("font.note");
 
         // Bottom bar
+        BtnRestart.Content        = Loc.Get("settings.btn.restart");
         BtnReset.Content          = Loc.Get("settings.btn.reset");
         BtnCancelSettings.Content = Loc.Get("settings.btn.cancel");
         BtnSaveSettings.Content   = Loc.Get("settings.btn.save");
@@ -153,6 +155,33 @@ public sealed partial class SettingsWindow : Window
         FontSeoulNamsanRadio.IsChecked = S.Font == FontChoice.SeoulNamsan;
         FontSystemRadio.IsChecked      = S.Font == FontChoice.System;
         SystemFontCombo.IsEnabled      = S.Font == FontChoice.System;
+
+        UpdateRestartButton();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 재시작이 필요한 설정(언어/폰트) 변경 감지
+    // ────────────────────────────────────────────────────────────────
+    private void OnRestartSensitiveChanged(object sender, SelectionChangedEventArgs e) => UpdateRestartButton();
+
+    private void UpdateRestartButton()
+    {
+        var newLanguage = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", 3 => "zh", _ => "ko" };
+        var newFont = FontSeoulNamsanRadio.IsChecked == true
+            ? FontChoice.SeoulNamsan
+            : FontSystemRadio.IsChecked == true
+                ? FontChoice.System
+                : FontChoice.JetBrainsMono;
+        var newSystemFont = SystemFontCombo.SelectedItem as string ?? S.SystemFontFamily;
+
+        var current = SettingsStore.Current;
+        var needsRestart =
+            newLanguage != current.Language ||
+            newFont != current.Font ||
+            (newFont == FontChoice.System &&
+             !string.Equals(newSystemFont, current.SystemFontFamily, StringComparison.OrdinalIgnoreCase));
+
+        BtnRestart.Visibility = needsRestart ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CollectNonBound()
@@ -217,11 +246,13 @@ public sealed partial class SettingsWindow : Window
     private void OnFontRadioChecked(object sender, RoutedEventArgs e)
     {
         SystemFontCombo.IsEnabled = FontSystemRadio.IsChecked == true;
+        UpdateRestartButton();
     }
 
     private void OnSystemFontComboChanged(object sender, SelectionChangedEventArgs e)
     {
         if (SystemFontCombo.SelectedItem is string) FontSystemRadio.IsChecked = true;
+        UpdateRestartButton();
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -271,6 +302,17 @@ public sealed partial class SettingsWindow : Window
         SettingsStore.Save(S);
         Saved = true;
         Close();
+    }
+
+    private void OnRestartNow(object sender, RoutedEventArgs e)
+    {
+        CollectNonBound();
+        SettingsStore.Save(S);
+        Saved = true;
+        try { Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true }); }
+        catch { /* 재시작 실패 시 무시 */ }
+        Close();
+        Application.Current.Exit();
     }
 
     private void OnCancel(object sender, RoutedEventArgs e)

@@ -395,7 +395,7 @@ public sealed class VideoEditor
                         ? OutputNaming.Derive(file, "cut", ext, outputDir)
                         : OutputNaming.DeriveIndexed(file, "cut", i + 1, clips.Count, ext, outputDir);
                     double span = range.Duration.TotalSeconds / Math.Max(grandTotal.TotalSeconds, 0.001);
-                    var scaler = new ProgressScaler(progress, done, span);
+                    var scaler = new ProgressScaler(progress, done, span, grandTotal, done * grandTotal.TotalSeconds);
                     done += span;
                     var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, settings, outPath);
                     await _runner.RunAsync(args, range.Duration, scaler, ct).ConfigureAwait(false);

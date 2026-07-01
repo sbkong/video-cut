@@ -1,6 +1,7 @@
 {
   "menu.settings": "환경 설정",
   "menu.about": "v-cut 정보",
+  "menu.restart": "재시작",
   "menu.exit": "종료",
   "project.new": "새 프로젝트",
   "project.open": "열기...",
@@ -56,6 +57,7 @@
   "settings.btn.reset": "초기화",
   "settings.btn.save": "저장",
   "settings.btn.cancel": "취소",
+  "settings.btn.restart": "지금 재시작",
 
   "gen.warn_unseekable": "탐색 불가능한 영상인 경우 알림",
   "gen.warn_file_exists": "저장 폴더에 이미 파일이 있는 경우 알림",
@@ -108,6 +110,8 @@
   "font.note": "※ 폰트 변경은 앱을 다시 시작하면 적용됩니다.",
 
   "out.title": "출력 설정",
+  "out.save_folder": "저장 폴더",
+  "out.folder_ph": "원본 파일과 같은 위치",
   "out.mode": "출력 방식",
   "out.fast_mode": "고속 모드 (화질 저하 없는 빠른 작업)",
   "out.convert_mode": "변환 모드 (재인코딩)",

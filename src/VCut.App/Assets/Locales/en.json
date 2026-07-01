@@ -1,6 +1,7 @@
 {
   "menu.settings": "Settings",
   "menu.about": "About v-cut",
+  "menu.restart": "Restart",
   "menu.exit": "Exit",
   "project.new": "New Project",
   "project.open": "Open...",
@@ -56,6 +57,7 @@
   "settings.btn.reset": "Reset",
   "settings.btn.save": "Save",
   "settings.btn.cancel": "Cancel",
+  "settings.btn.restart": "Restart Now",
 
   "gen.warn_unseekable": "Warn if video is not seekable",
   "gen.warn_file_exists": "Warn if a file already exists in save folder",
@@ -108,6 +110,8 @@
   "font.note": "※ Font changes take effect after restarting the app.",
 
   "out.title": "Output Settings",
+  "out.save_folder": "Save Folder",
+  "out.folder_ph": "Same location as source file",
   "out.mode": "Output Mode",
   "out.fast_mode": "Fast Mode (lossless quality, fast processing)",
   "out.convert_mode": "Convert Mode (re-encode)",

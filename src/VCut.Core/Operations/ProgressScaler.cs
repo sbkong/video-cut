@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using VCut.Core.Models;
 
 namespace VCut.Core.Operations;
@@ -10,6 +11,7 @@ internal sealed class ProgressScaler : IProgress<ProgressInfo>
     private readonly double _span;
     private readonly TimeSpan _grandTotal;
     private readonly double _baseProcessedSec;
+    private Stopwatch? _sw;
 
     /// <param name="rangeStart">전체 진행률에서 이 단계가 차지하는 시작점(0~1).</param>
     /// <param name="rangeSpan">이 단계가 차지하는 폭(0~1).</param>
@@ -38,11 +40,22 @@ internal sealed class ProgressScaler : IProgress<ProgressInfo>
             : value.Processed;
 
         TimeSpan? eta = null;
-        if (_grandTotal > TimeSpan.Zero && value.Speed > 0.01)
+        if (_grandTotal > TimeSpan.Zero)
         {
-            var remaining = _grandTotal - processed;
-            if (remaining > TimeSpan.Zero)
-                eta = TimeSpan.FromSeconds(remaining.TotalSeconds / value.Speed);
+            _sw ??= Stopwatch.StartNew();
+            var elapsed = _sw.Elapsed.TotalSeconds;
+            // 현재 세그먼트에서 진행된 전체 비율(localProgress)을 속도 기준으로 사용.
+            // global/elapsed 는 세그먼트마다 _sw가 리셋되어 오차가 크므로 local*_span 사용.
+            // ETA = elapsed × (1-global) / localProgress
+            double localProgress = local * _span;
+            if (localProgress > 0.001 && elapsed > 0.5)
+                eta = TimeSpan.FromSeconds(elapsed * (1.0 - global) / localProgress);
+            else if (value.Speed > 0.01)
+            {
+                var remaining = _grandTotal - processed;
+                if (remaining > TimeSpan.Zero)
+                    eta = TimeSpan.FromSeconds(remaining.TotalSeconds / value.Speed);
+            }
         }
 
         _inner.Report(new ProgressInfo

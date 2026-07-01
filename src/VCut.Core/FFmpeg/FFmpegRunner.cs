@@ -54,6 +54,9 @@ public sealed class FFmpegRunner : IFFmpegRunner
         // 진행률 누적 상태.
         double lastSpeed = 0, lastFps = 0;
         TimeSpan lastProcessed = TimeSpan.Zero;
+        // ETA를 순간 속도가 아닌 경과 시간 기반 누적 평균으로 계산하기 위한 스톱워치.
+        // 첫 progress 보고 시 시작(ffmpeg 초기화 시간 제외).
+        Stopwatch? etaSw = null;
 
         process.ErrorDataReceived += (_, e) =>
         {
@@ -89,13 +92,21 @@ public sealed class FFmpegRunner : IFFmpegRunner
             else if (key.SequenceEqual("progress"))
             {
                 // 한 묶음(progress=continue|end)이 끝나는 시점에 콜백 발행.
+                etaSw ??= Stopwatch.StartNew();
+
                 double? fraction = null;
                 TimeSpan? eta = null;
                 if (totalDuration is { } total && total > TimeSpan.Zero)
                 {
                     fraction = Math.Clamp(lastProcessed.TotalSeconds / total.TotalSeconds, 0, 1);
-                    if (lastSpeed > 0.01)
+                    // 경과 시간 기반 누적 평균 속도로 ETA 계산.
+                    // ETA = elapsed × (1 - f) / f  →  순간 속도 노이즈 없이 안정적.
+                    var elapsed = etaSw.Elapsed.TotalSeconds;
+                    if (fraction > 0.001 && elapsed > 0.5)
+                        eta = TimeSpan.FromSeconds(elapsed * (1.0 - fraction.Value) / fraction.Value);
+                    else if (lastSpeed > 0.01)
                     {
+                        // 시작 직후 경과 시간이 짧을 때만 순간 속도로 폴백.
                         var remainingOut = total - lastProcessed;
                         if (remainingOut > TimeSpan.Zero)
                             eta = TimeSpan.FromSeconds(remainingOut.TotalSeconds / lastSpeed);

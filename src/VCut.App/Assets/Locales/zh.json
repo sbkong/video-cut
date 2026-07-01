@@ -1,6 +1,7 @@
 {
   "menu.settings": "设置",
   "menu.about": "关于 v-cut",
+  "menu.restart": "重启",
   "menu.exit": "退出",
   "project.new": "新建项目",
   "project.open": "打开...",
@@ -56,6 +57,7 @@
   "settings.btn.reset": "重置",
   "settings.btn.save": "保存",
   "settings.btn.cancel": "取消",
+  "settings.btn.restart": "立即重启",
 
   "gen.warn_unseekable": "不可跳转的视频时发出警告",
   "gen.warn_file_exists": "保存文件夹中已存在文件时发出警告",
@@ -108,6 +110,8 @@
   "font.note": "※ 字体更改在重启应用后生效。",
 
   "out.title": "输出设置",
+  "out.save_folder": "保存文件夹",
+  "out.folder_ph": "与源文件相同位置",
   "out.mode": "输出方式",
   "out.fast_mode": "快速模式（无画质损失·高速处理）",
   "out.convert_mode": "转换模式（重新编码）",

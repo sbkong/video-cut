@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Diagnostics;
+using Microsoft.UI.Xaml;
 using VCut.App.Locale;
 using VCut.App.Settings;
 using VCut.Core;
@@ -101,7 +102,12 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _engineReady = true;
     [ObservableProperty] private string? _sourcePath;
     [ObservableProperty] private string _mediaSummary = "";
-    [ObservableProperty] private bool _isFastMode = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ConvertOptionsVisibility))]
+    private bool _isFastMode = true;
+
+    public Visibility ConvertOptionsVisibility =>
+        IsFastMode ? Visibility.Collapsed : Visibility.Visible;
     [ObservableProperty] private double _progressValue;
     [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private string _etaText = "";
@@ -912,6 +918,10 @@ public sealed partial class MainViewModel : ObservableObject
                 + (failed.Count > 0 ? Loc.Format("vm.batch_failed_suffix", string.Join('\n', failed)) : "");
             await Notify(Loc.Get("vm.batch_done_dlg"), detail);
         }
+        catch (OperationCanceledException)
+        {
+            StatusText = Loc.Get("vm.cancelled");
+        }
         catch (Exception ex)
         {
             StatusText = Loc.Format("vm.error", ex.Message);
@@ -971,6 +981,10 @@ public sealed partial class MainViewModel : ObservableObject
                 await Notify(Loc.Get("vm.run_fail_dlg"), result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
             }
         }
+        catch (OperationCanceledException)
+        {
+            StatusText = Loc.Get("vm.cancelled");
+        }
         catch (Exception ex)
         {
             StatusText = Loc.Format("vm.error", ex.Message);
@@ -981,6 +995,7 @@ public sealed partial class MainViewModel : ObservableObject
             IsBusy = false;
             _cts?.Dispose();
             _cts = null;
+            OutputDirOverride = null;
             NotifyCommands();
         }
     }
@@ -1005,9 +1020,12 @@ public sealed partial class MainViewModel : ObservableObject
         return s;
     }
 
-    /// <summary>환경설정에 따른 출력 폴더(지정 폴더 또는 원본 위치).</summary>
+    /// <summary>출력 설정 창에서 이번 실행에만 적용할 폴더 재정의. 실행 전 창에서 설정, 완료 후 자동 초기화.</summary>
+    public string? OutputDirOverride { get; set; }
+
+    /// <summary>실제 출력 폴더: 창 재정의 → 환경설정 → 원본 위치 순으로 결정.</summary>
     private string? OutputDir =>
-        SourcePath is null ? null : SettingsStore.Current.ResolveOutputDir(SourcePath);
+        OutputDirOverride ?? (SourcePath is null ? null : SettingsStore.Current.ResolveOutputDir(SourcePath));
 
     private async Task OpenOutputFolderIfEnabledAsync(IReadOnlyList<string> outputs)
     {
