@@ -109,9 +109,6 @@
                         <CheckBox Content="프로젝트 저장 메시지 표시"
                                   IsChecked="{x:Bind S.ShowProjectSaveMessage, Mode=TwoWay}"
                                   Foreground="{StaticResource BcTextBrush}"/>
-                        <CheckBox Content="작업 완료 후 저장 폴더 열기"
-                                  IsChecked="{x:Bind S.OpenFolderAfterDone, Mode=TwoWay}"
-                                  Foreground="{StaticResource BcTextBrush}"/>
                         <CheckBox Content="로그 파일 생성하기(.log)"
                                   IsChecked="{x:Bind S.CreateLogFile, Mode=TwoWay}"
                                   Foreground="{StaticResource BcTextBrush}"/>
@@ -169,6 +166,20 @@
                                      PlaceholderText="저장 폴더 경로"/>
                             <Button Grid.Column="1" Content="찾아보기…" Click="OnBrowseSaveFolder"/>
                         </Grid>
+                        <TextBlock Text="작업 완료 후 폴더 열기" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <RadioButton x:Name="OutputOpenAskRadio"
+                                     Content="매번 묻기"
+                                     GroupName="outputopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="OutputOpenAlwaysRadio"
+                                     Content="항상 열기"
+                                     GroupName="outputopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="OutputOpenNeverRadio"
+                                     Content="열지 않기"
+                                     GroupName="outputopenmode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
                         <TextBlock Text="캡처 저장 폴더" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
                         <RadioButton x:Name="CaptureSameFolderRadio"

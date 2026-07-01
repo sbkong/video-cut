@@ -373,7 +373,6 @@ public sealed partial class MainWindow : Window
             return;
         }
         if (e.PropertyName != nameof(MainViewModel.SelectedSegment) || _syncingListView) return;
-        System.Diagnostics.Debug.WriteLine($"[SEL] OnVmPropertyChanged: target={VM.SelectedSegment?.FileName ?? "null"} syncing={_syncingListView} moving={VM.IsMovingItem}");
         _syncingListView = true;
         var target = VM.SelectedSegment;
         foreach (var seg in VM.Segments)
@@ -386,19 +385,14 @@ public sealed partial class MainWindow : Window
 
     private void SyncListViewSelection()
     {
-        var isSelected = VM.Segments.Where(s => s.IsSelected).Select(s => s.FileName).ToList();
-        System.Diagnostics.Debug.WriteLine($"[SEL] SyncListViewSelection called: IsSelected=[{string.Join(",", isSelected)}] moving={VM.IsMovingItem}");
         DispatcherQueue.TryEnqueue(() =>
         {
-            System.Diagnostics.Debug.WriteLine($"[SEL] outer TryEnqueue: syncing={_syncingListView} moving={VM.IsMovingItem}");
             _syncingListView = true;
             SegmentList.SelectedItems.Clear();
             foreach (var seg in VM.Segments.Where(s => s.IsSelected))
                 SegmentList.SelectedItems.Add(seg);
-            System.Diagnostics.Debug.WriteLine($"[SEL] outer TryEnqueue done: SelectedItems.Count={SegmentList.SelectedItems.Count}");
             DispatcherQueue.TryEnqueue(() =>
             {
-                System.Diagnostics.Debug.WriteLine($"[SEL] inner TryEnqueue: SelectedItems.Count={SegmentList.SelectedItems.Count} syncing={_syncingListView} moving={VM.IsMovingItem}");
                 VM.IsMovingItem = false;
                 _syncingListView = false;
             });
@@ -407,7 +401,6 @@ public sealed partial class MainWindow : Window
 
     private void OnSegmentListSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"[SEL] SelectionChanged: added=[{string.Join(",", e.AddedItems.OfType<ClipSegment>().Select(s => s.FileName))}] removed=[{string.Join(",", e.RemovedItems.OfType<ClipSegment>().Select(s => s.FileName))}] syncing={_syncingListView} moving={VM.IsMovingItem} saved={_preSelectionDrag?.Count ?? 0}");
         if (_syncingListView || VM.IsMovingItem) return;
 
         // _preSelectionDrag가 있으면 드래그 직전 WinUI 3가 발화시키는 SelectionChanged일 수 있음
@@ -422,10 +415,6 @@ public sealed partial class MainWindow : Window
                 item.IsSelected = false;
             foreach (var item in e.AddedItems.OfType<ClipSegment>())
                 item.IsSelected = true;
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("[SEL] SelectionChanged: drag-init 감지, IsSelected 유지");
         }
 
         _syncingListView = true;
@@ -459,7 +448,6 @@ public sealed partial class MainWindow : Window
         _preSelectionDrag = SegmentList.SelectedItems.Count > 1
             ? SegmentList.SelectedItems.OfType<ClipSegment>().ToList()
             : null;
-        System.Diagnostics.Debug.WriteLine($"[SEL] PointerPressed: saved={_preSelectionDrag?.Count ?? 0} items");
     }
 
     // 클릭 시 SelectionChanged는 PointerReleased 이후에 동기 발화 →
@@ -470,7 +458,6 @@ public sealed partial class MainWindow : Window
         DispatcherQueue.TryEnqueue(() =>
         {
             if (_preSelectionDrag == null || VM.IsMovingItem) return; // 드래그가 시작됐으면 DragItemsCompleted가 처리
-            System.Diagnostics.Debug.WriteLine("[SEL] PointerReleased deferred: 클릭 확정, IsSelected 재동기화");
             _preSelectionDrag = null;
             _syncingListView = true;
             foreach (var seg in VM.Segments)
@@ -481,7 +468,6 @@ public sealed partial class MainWindow : Window
 
     private void OnDragItemsStarting(object sender, DragItemsStartingEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsStarting: SelectedItems={SegmentList.SelectedItems.Count} IsSelected={VM.Segments.Count(s => s.IsSelected)} saved={_preSelectionDrag?.Count ?? 0}");
         VM.IsMovingItem = true;
     }
 
@@ -489,13 +475,11 @@ public sealed partial class MainWindow : Window
     {
         var saved = _preSelectionDrag;
         _preSelectionDrag = null;
-        System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsCompleted: saved={saved?.Count ?? 0} IsSelected={VM.Segments.Count(s => s.IsSelected)}");
 
         VM.Renumber();
 
         if (saved is { Count: > 1 })
         {
-            System.Diagnostics.Debug.WriteLine($"[SEL] DragItemsCompleted: IsSelected 복원 {saved.Count}개");
             foreach (var seg in VM.Segments)
                 seg.IsSelected = saved.Contains(seg);
         }

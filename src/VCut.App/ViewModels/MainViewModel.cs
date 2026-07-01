@@ -786,9 +786,9 @@ public sealed partial class MainViewModel : ObservableObject
                 {
                     var s = SettingsStore.Current;
                     bool open;
-                    if (s.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysOpen)
+                    if (s.CaptureOpenFolderMode == OpenFolderMode.AlwaysOpen)
                         open = true;
-                    else if (s.CaptureOpenFolderMode == CaptureOpenFolderMode.NeverOpen)
+                    else if (s.CaptureOpenFolderMode == OpenFolderMode.NeverOpen)
                         open = false;
                     else if (ShowConfirm is not null)
                     {
@@ -797,19 +797,14 @@ public sealed partial class MainViewModel : ObservableObject
                         if (dontAskAgain)
                         {
                             s.CaptureOpenFolderMode = confirmed
-                                ? CaptureOpenFolderMode.AlwaysOpen
-                                : CaptureOpenFolderMode.NeverOpen;
+                                ? OpenFolderMode.AlwaysOpen
+                                : OpenFolderMode.NeverOpen;
                             SettingsStore.Save(s);
                         }
                     }
                     else open = false;
 
-                    if (open)
-                    {
-                        try { Process.Start(new ProcessStartInfo("explorer.exe",
-                            $"/select,\"{result.OutputFiles[0]}\"") { UseShellExecute = true }); }
-                        catch { }
-                    }
+                    if (open) ExplorerHelper.OpenAndSelect(result.OutputFiles[0]);
                 }
             }
             else
@@ -946,8 +941,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 ProgressValue = 100;
                 StatusText = $"완료 — {result.OutputFiles.Count}개 파일 ({result.Elapsed.TotalSeconds:0.0}초)";
-                OpenOutputFolderIfEnabled(result.OutputFiles);
-                await Notify("작업 완료", string.Join('\n', result.OutputFiles));
+                await OpenOutputFolderIfEnabledAsync(result.OutputFiles);
             }
             else
             {
@@ -993,15 +987,30 @@ public sealed partial class MainViewModel : ObservableObject
     private string? OutputDir =>
         SourcePath is null ? null : SettingsStore.Current.ResolveOutputDir(SourcePath);
 
-    private void OpenOutputFolderIfEnabled(IReadOnlyList<string> outputs)
+    private async Task OpenOutputFolderIfEnabledAsync(IReadOnlyList<string> outputs)
     {
-        if (!SettingsStore.Current.OpenFolderAfterDone || outputs.Count == 0) return;
-        try
+        if (outputs.Count == 0) return;
+        var s = SettingsStore.Current;
+        bool open;
+        if (s.OutputOpenFolderMode == OpenFolderMode.AlwaysOpen)
+            open = true;
+        else if (s.OutputOpenFolderMode == OpenFolderMode.NeverOpen)
+            open = false;
+        else if (ShowConfirm is not null)
         {
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{outputs[0]}\"")
-            { UseShellExecute = true });
+            var (confirmed, dontAskAgain) = await ShowConfirm("작업 완료", "저장 폴더를 여시겠습니까?");
+            open = confirmed;
+            if (dontAskAgain)
+            {
+                s.OutputOpenFolderMode = confirmed
+                    ? OpenFolderMode.AlwaysOpen
+                    : OpenFolderMode.NeverOpen;
+                SettingsStore.Save(s);
+            }
         }
-        catch { /* 탐색기 열기 실패 무시 */ }
+        else open = false;
+
+        if (open) ExplorerHelper.OpenAndSelect(outputs[0]);
     }
 
     private void ApplyContainer(ConversionSettings s)

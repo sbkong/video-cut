@@ -14,8 +14,8 @@ public enum SaveFolderMode
     Custom,
 }
 
-/// <summary>캡처 완료 후 폴더 열기 동작.</summary>
-public enum CaptureOpenFolderMode
+/// <summary>작업 완료 후 폴더 열기 동작(캡처/일반 작업 공용).</summary>
+public enum OpenFolderMode
 {
     /// <summary>매번 물어보기.</summary>
     AlwaysAsk,
@@ -35,8 +35,8 @@ public sealed class AppSettings
     public bool WarnUnseekable { get; set; } = true;
     public bool WarnFileExists { get; set; } = true;
     public bool ShowProjectSaveMessage { get; set; } = true;
-    /// <summary>[연결] 작업 완료 후 저장 폴더를 탐색기로 열기.</summary>
-    public bool OpenFolderAfterDone { get; set; } = true;
+    /// <summary>[연결] 자르기 등 일반 작업 완료 후 폴더 열기 동작(매번 묻기/항상 열기/열지 않기).</summary>
+    public OpenFolderMode OutputOpenFolderMode { get; set; } = OpenFolderMode.AlwaysAsk;
     /// <summary>[연결] 출력설정 로그(.log) 생성.</summary>
     public bool CreateLogFile { get; set; }
     /// <summary>[연결] MP4 MOOV를 앞부분에 저장(faststart).</summary>
@@ -61,7 +61,7 @@ public sealed class AppSettings
     /// <summary>[연결] 지정 캡처 저장 폴더(CaptureFolderMode=Custom일 때).</summary>
     public string CaptureFolder { get; set; } = "";
     /// <summary>[연결] 캡처 완료 후 폴더 열기 동작(매번 묻기/항상 열기/열지 않기).</summary>
-    public CaptureOpenFolderMode CaptureOpenFolderMode { get; set; } = CaptureOpenFolderMode.AlwaysAsk;
+    public OpenFolderMode CaptureOpenFolderMode { get; set; } = OpenFolderMode.AlwaysAsk;
     /// <summary>임시 파일 폴더(Cache). 비우면 시스템 임시 폴더 사용.</summary>
     public string TempFolder { get; set; } = "";
 

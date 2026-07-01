@@ -40,9 +40,12 @@ public sealed partial class SettingsWindow : Window
         CaptureSameFolderRadio.IsChecked = S.CaptureFolderMode == SaveFolderMode.SameAsSource;
         CaptureCustomFolderRadio.IsChecked = S.CaptureFolderMode == SaveFolderMode.Custom;
         CaptureFolderBox.Text = S.CaptureFolder;
-        CaptureOpenAskRadio.IsChecked    = S.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysAsk;
-        CaptureOpenAlwaysRadio.IsChecked = S.CaptureOpenFolderMode == CaptureOpenFolderMode.AlwaysOpen;
-        CaptureOpenNeverRadio.IsChecked  = S.CaptureOpenFolderMode == CaptureOpenFolderMode.NeverOpen;
+        CaptureOpenAskRadio.IsChecked    = S.CaptureOpenFolderMode == OpenFolderMode.AlwaysAsk;
+        CaptureOpenAlwaysRadio.IsChecked = S.CaptureOpenFolderMode == OpenFolderMode.AlwaysOpen;
+        CaptureOpenNeverRadio.IsChecked  = S.CaptureOpenFolderMode == OpenFolderMode.NeverOpen;
+        OutputOpenAskRadio.IsChecked    = S.OutputOpenFolderMode == OpenFolderMode.AlwaysAsk;
+        OutputOpenAlwaysRadio.IsChecked = S.OutputOpenFolderMode == OpenFolderMode.AlwaysOpen;
+        OutputOpenNeverRadio.IsChecked  = S.OutputOpenFolderMode == OpenFolderMode.NeverOpen;
         TempFolderBox.Text = S.TempFolder;
         LanguageCombo.SelectedIndex = S.Language switch { "en" => 1, "ja" => 2, _ => 0 };
         HwCombo.SelectedIndex = (int)S.DefaultHardwareAccel;
@@ -59,10 +62,15 @@ public sealed partial class SettingsWindow : Window
             ? SaveFolderMode.Custom : SaveFolderMode.SameAsSource;
         S.CaptureFolder = CaptureFolderBox.Text.Trim();
         S.CaptureOpenFolderMode = CaptureOpenAlwaysRadio.IsChecked == true
-            ? CaptureOpenFolderMode.AlwaysOpen
+            ? OpenFolderMode.AlwaysOpen
             : CaptureOpenNeverRadio.IsChecked == true
-                ? CaptureOpenFolderMode.NeverOpen
-                : CaptureOpenFolderMode.AlwaysAsk;
+                ? OpenFolderMode.NeverOpen
+                : OpenFolderMode.AlwaysAsk;
+        S.OutputOpenFolderMode = OutputOpenAlwaysRadio.IsChecked == true
+            ? OpenFolderMode.AlwaysOpen
+            : OutputOpenNeverRadio.IsChecked == true
+                ? OpenFolderMode.NeverOpen
+                : OpenFolderMode.AlwaysAsk;
         S.TempFolder = TempFolderBox.Text.Trim();
         S.Language = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", _ => "ko" };
         S.DefaultHardwareAccel = (HardwareAccel)Math.Max(0, HwCombo.SelectedIndex);

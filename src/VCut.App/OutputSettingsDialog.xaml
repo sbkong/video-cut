@@ -19,7 +19,7 @@
         </StackPanel>
 
         <!-- 변환 모드 상세 -->
-        <StackPanel Spacing="8" Visibility="{x:Bind VM.IsFastMode, Mode=OneWay, Converter={StaticResource NotConverter}}">
+        <StackPanel Spacing="8" Visibility="{x:Bind VM.IsFastMode, Mode=OneWay, Converter={StaticResource NotToVisibilityConverter}}">
             <ComboBox Header="파일 형식" SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
                 <ComboBoxItem Content="MP4" /><ComboBoxItem Content="MKV" /><ComboBoxItem Content="WebM (VP9)" /><ComboBoxItem Content="AVI" />
             </ComboBox>
