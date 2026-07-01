@@ -87,6 +87,7 @@ public sealed partial class MainWindow : Window
                 CloseButtonText = "취소",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = Root.XamlRoot,
+                FontFamily = AppFontFamily,
             };
             var result = await dlg.ShowAsync();
             if (result == ContentDialogResult.Primary)
@@ -106,13 +107,17 @@ public sealed partial class MainWindow : Window
     private bool _confirmClose;
     private bool _isHomeScreen = true;
 
+    /// <summary>다이얼로그는 XamlRoot만으론 폰트를 상속받지 못하므로 명시적으로 지정.</summary>
+    private static Microsoft.UI.Xaml.Media.FontFamily AppFontFamily =>
+        FontService.Resolve(Settings.SettingsStore.Current);
+
     // ════════ 창 크기/위치 저장·복원 ════════
 
     private static void RestoreWindowState(Microsoft.UI.Windowing.AppWindow aw)
     {
         var s = Settings.SettingsStore.Current;
         int left, top;
-        if (s.WindowLeft >= 0 && s.WindowTop >= 0)
+        if (s.WindowPositionSet && IsOnAnyDisplay(s.WindowLeft, s.WindowTop, s.WindowWidth, s.WindowHeight))
         {
             left = s.WindowLeft;
             top  = s.WindowTop;
@@ -129,6 +134,24 @@ public sealed partial class MainWindow : Window
             op.Maximize();
     }
 
+    /// <summary>저장된 창 위치가 현재 연결된 모니터 중 하나와 겹치는지 확인.
+    /// 모니터 구성이 바뀌었거나(예: 보조 모니터 연결 해제) 저장 당시와 달라져
+    /// 창이 화면 밖으로 완전히 벗어나는 것을 방지한다.</summary>
+    private static bool IsOnAnyDisplay(int left, int top, int width, int height)
+    {
+        // foreach(IReadOnlyList<DisplayArea>)는 일부 WinAppSDK 버전에서 CsWinRT 프로젝션 문제로
+        // InvalidCastException을 던지므로 인덱서로 순회한다.
+        var displays = DisplayArea.FindAll();
+        for (int i = 0; i < displays.Count; i++)
+        {
+            var wa = displays[i].WorkArea;
+            bool overlaps = left < wa.X + wa.Width && left + width > wa.X &&
+                            top  < wa.Y + wa.Height && top  + height > wa.Y;
+            if (overlaps) return true;
+        }
+        return false;
+    }
+
     private void SaveWindowState()
     {
         if (AppWindow is not { } aw) return;
@@ -141,6 +164,7 @@ public sealed partial class MainWindow : Window
             s.WindowHeight = aw.Size.Height;
             s.WindowLeft   = aw.Position.X;
             s.WindowTop    = aw.Position.Y;
+            s.WindowPositionSet = true;
         }
         Settings.SettingsStore.Save(s);
     }
@@ -283,6 +307,7 @@ public sealed partial class MainWindow : Window
                 PrimaryButtonText = "목록에서 제거",
                 CloseButtonText = "취소",
                 XamlRoot = Root.XamlRoot,
+                FontFamily = AppFontFamily,
             };
             if (await dlg.ShowAsync() == ContentDialogResult.Primary)
                 VM.RemoveRecentProject(path);
@@ -574,6 +599,7 @@ public sealed partial class MainWindow : Window
             },
             CloseButtonText = "확인",
             XamlRoot = Root.XamlRoot,
+            FontFamily = AppFontFamily,
         };
         await dialog.ShowAsync();
     }
@@ -597,6 +623,7 @@ public sealed partial class MainWindow : Window
             CloseButtonText = "아니요",
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = Root.XamlRoot,
+            FontFamily = AppFontFamily,
         };
         var result = await dialog.ShowAsync();
         return (result == ContentDialogResult.Primary, checkBox.IsChecked == true);

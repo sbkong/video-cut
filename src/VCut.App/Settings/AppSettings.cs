@@ -25,6 +25,17 @@ public enum OpenFolderMode
     NeverOpen,
 }
 
+/// <summary>앱 기본 폰트 선택.</summary>
+public enum FontChoice
+{
+    /// <summary>기본 내장 폰트: JetBrains Mono.</summary>
+    JetBrainsMono,
+    /// <summary>내장 폰트: 서울남산체.</summary>
+    SeoulNamsan,
+    /// <summary>시스템에 설치된 폰트 중 선택(SystemFontFamily).</summary>
+    System,
+}
+
 /// <summary>
 /// 앱 환경설정. docx '환경 설정'의 일반/재생/파일/언어/고속 모드 항목에 대응.
 /// 실제 동작에 영향을 주는 항목은 엔진/앱 흐름에 연결되고, 나머지는 상태만 보존.
@@ -83,11 +94,20 @@ public sealed class AppSettings
     // ── 테마 ──
     public AppTheme Theme { get; set; } = AppTheme.Dark;
 
-    // ── 창 크기/위치 (-1 = 미설정, OS 기본값 사용) ──
+    // ── 폰트 ──
+    /// <summary>[연결] 앱 기본 폰트. 변경은 다음 실행부터 적용된다.</summary>
+    public FontChoice Font { get; set; } = FontChoice.JetBrainsMono;
+    /// <summary>Font=System일 때 사용할 시스템 폰트 패밀리 이름.</summary>
+    public string SystemFontFamily { get; set; } = "Segoe UI";
+
+    // ── 창 크기/위치 ──
+    // 보조 모니터가 주 모니터의 좌/상단에 배치된 경우 WindowLeft/Top이 음수일 수 있으므로,
+    // "저장된 값 없음"은 좌표 부호가 아니라 WindowPositionSet 플래그로 구분한다.
     public int WindowWidth { get; set; } = 1320;
     public int WindowHeight { get; set; } = 880;
-    public int WindowLeft { get; set; } = -1;
-    public int WindowTop { get; set; } = -1;
+    public int WindowLeft { get; set; }
+    public int WindowTop { get; set; }
+    public bool WindowPositionSet { get; set; }
     public bool WindowMaximized { get; set; } = false;
 
     // ── 최근 프로젝트 ──

@@ -92,6 +92,8 @@
                              Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="4"/>
                 <RadioButton x:Name="NavTheme"    Content="테마"      GroupName="nav"
                              Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="5"/>
+                <RadioButton x:Name="NavFont"     Content="폰트"      GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="6"/>
             </StackPanel>
 
             <!-- 콘텐츠 영역 (패널들이 겹쳐 쌓이고 가시성으로 전환) -->
@@ -302,6 +304,44 @@
                         </RadioButton>
 
                         <TextBlock Text="※ 테마 변경은 즉시 미리보기되며, 저장 시 확정됩니다."
+                                   FontSize="11.5" Foreground="{StaticResource BcTextSecondaryBrush}"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ── 폰트 ── -->
+                <ScrollViewer x:Name="PanelFont" Padding="16" Visibility="Collapsed">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="기본 폰트" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}"/>
+
+                        <RadioButton x:Name="FontJetBrainsRadio" GroupName="appfont"
+                                     Checked="OnFontRadioChecked"
+                                     Foreground="{StaticResource BcTextBrush}">
+                            <TextBlock Foreground="{StaticResource BcTextBrush}">
+                                <Run Text="JetBrains Mono"
+                                     FontFamily="ms-appx:///Assets/Fonts/JetBrainsMono-Regular.ttf#JetBrains Mono"/>
+                            </TextBlock>
+                        </RadioButton>
+
+                        <RadioButton x:Name="FontSeoulNamsanRadio" GroupName="appfont"
+                                     Checked="OnFontRadioChecked"
+                                     Foreground="{StaticResource BcTextBrush}">
+                            <TextBlock Foreground="{StaticResource BcTextBrush}">
+                                <Run Text="서울남산체"
+                                     FontFamily="ms-appx:///Assets/Fonts/SeoulNamsanM.ttf#SeoulNamsan M"/>
+                            </TextBlock>
+                        </RadioButton>
+
+                        <RadioButton x:Name="FontSystemRadio" GroupName="appfont"
+                                     Checked="OnFontRadioChecked"
+                                     Content="시스템 설치 폰트"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+
+                        <ComboBox x:Name="SystemFontCombo" Header="시스템 폰트 선택"
+                                  HorizontalAlignment="Stretch" Margin="24,0,0,0"
+                                  SelectionChanged="OnSystemFontComboChanged"/>
+
+                        <TextBlock Text="※ 폰트 변경은 앱을 다시 시작하면 적용됩니다."
                                    FontSize="11.5" Foreground="{StaticResource BcTextSecondaryBrush}"/>
                     </StackPanel>
                 </ScrollViewer>

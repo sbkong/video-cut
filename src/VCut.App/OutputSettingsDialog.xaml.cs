@@ -12,5 +12,6 @@ public sealed partial class OutputSettingsDialog : ContentDialog
     {
         VM = vm;
         InitializeComponent();
+        FontFamily = FontService.Resolve(Settings.SettingsStore.Current);
     }
 }

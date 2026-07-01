@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using VCut.App.Settings;
@@ -23,9 +24,12 @@ public sealed partial class SettingsWindow : Window
         LoadNonBound();
         NavGeneral.IsChecked = true;
 
-        // 현재 적용 중인 테마를 이 창에도 적용
+        // 현재 적용 중인 테마/폰트를 이 창에도 적용
         if (Content is FrameworkElement root)
+        {
             ThemeService.SetElementTheme(root, SettingsStore.Current.Theme);
+            FontService.ApplyToRoot(root, SettingsStore.Current);
+        }
 
         if (AppWindow is { } aw)
             aw.Resize(new Windows.Graphics.SizeInt32(560, 640));
@@ -51,6 +55,15 @@ public sealed partial class SettingsWindow : Window
         HwCombo.SelectedIndex = (int)S.DefaultHardwareAccel;
         ThemeDarkRadio.IsChecked  = S.Theme == AppTheme.Dark;
         ThemeLightRadio.IsChecked = S.Theme == AppTheme.Light;
+
+        var fonts = SystemFonts.GetInstalledFamilyNames();
+        SystemFontCombo.ItemsSource = fonts;
+        SystemFontCombo.SelectedItem = fonts.FirstOrDefault(f =>
+            string.Equals(f, S.SystemFontFamily, StringComparison.OrdinalIgnoreCase));
+        FontJetBrainsRadio.IsChecked   = S.Font == FontChoice.JetBrainsMono;
+        FontSeoulNamsanRadio.IsChecked = S.Font == FontChoice.SeoulNamsan;
+        FontSystemRadio.IsChecked      = S.Font == FontChoice.System;
+        SystemFontCombo.IsEnabled      = S.Font == FontChoice.System;
     }
 
     private void CollectNonBound()
@@ -75,6 +88,12 @@ public sealed partial class SettingsWindow : Window
         S.Language = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", _ => "ko" };
         S.DefaultHardwareAccel = (HardwareAccel)Math.Max(0, HwCombo.SelectedIndex);
         S.Theme = ThemeLightRadio.IsChecked == true ? AppTheme.Light : AppTheme.Dark;
+        S.Font = FontSeoulNamsanRadio.IsChecked == true
+            ? FontChoice.SeoulNamsan
+            : FontSystemRadio.IsChecked == true
+                ? FontChoice.System
+                : FontChoice.JetBrainsMono;
+        if (SystemFontCombo.SelectedItem is string selectedFont) S.SystemFontFamily = selectedFont;
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -89,6 +108,7 @@ public sealed partial class SettingsWindow : Window
         PanelLanguage.Visibility = idx == 3 ? Visibility.Visible : Visibility.Collapsed;
         PanelFastMode.Visibility = idx == 4 ? Visibility.Visible : Visibility.Collapsed;
         PanelTheme.Visibility    = idx == 5 ? Visibility.Visible : Visibility.Collapsed;
+        PanelFont.Visibility     = idx == 6 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -100,6 +120,19 @@ public sealed partial class SettingsWindow : Window
         ThemeService.Apply(theme,
             Content as FrameworkElement,
             App.MainWindow?.Content as FrameworkElement);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 폰트
+    // ────────────────────────────────────────────────────────────────
+    private void OnFontRadioChecked(object sender, RoutedEventArgs e)
+    {
+        SystemFontCombo.IsEnabled = FontSystemRadio.IsChecked == true;
+    }
+
+    private void OnSystemFontComboChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SystemFontCombo.SelectedItem is string) FontSystemRadio.IsChecked = true;
     }
 
     // ────────────────────────────────────────────────────────────────
