@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using VCut.App.Locale;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 
@@ -51,6 +52,8 @@ public sealed partial class ClipSegment : ObservableObject
 
     public Microsoft.UI.Xaml.Visibility SelectedVisibility =>
         IsSelected ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    public string MissingText => Loc.Get("clip.missing");
 
     public Microsoft.UI.Xaml.Visibility MissingVisibility =>
         IsMissing ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;

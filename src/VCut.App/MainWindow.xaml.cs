@@ -1,11 +1,13 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using VCut.App.Locale;
 using VCut.App.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -51,10 +53,12 @@ public sealed partial class MainWindow : Window
             new PointerEventHandler(OnSegmentListPointerReleased), handledEventsToo: true);
 
         _segmentContextFlyout = new MenuFlyout();
-        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "제거",        Command = VM.RemoveSelectedClipCommand, Icon = new FontIcon { Glyph = "" } });
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = Loc.Get("ctx.remove"),        Command = VM.RemoveSelectedClipCommand, Icon = new FontIcon { Glyph = "" } });
         _segmentContextFlyout.Items.Add(new MenuFlyoutSeparator());
-        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "위로 이동",   Command = VM.MoveClipUpCommand,          Icon = new FontIcon { Glyph = "" } });
-        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = "아래로 이동", Command = VM.MoveClipDownCommand,        Icon = new FontIcon { Glyph = "" } });
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = Loc.Get("ctx.move_up"),   Command = VM.MoveClipUpCommand,          Icon = new FontIcon { Glyph = "" } });
+        _segmentContextFlyout.Items.Add(new MenuFlyoutItem { Text = Loc.Get("ctx.move_down"), Command = VM.MoveClipDownCommand,        Icon = new FontIcon { Glyph = "" } });
+
+        ApplyLocale();
 
         SetupShortcuts();
         ShowScreen("home");
@@ -80,11 +84,11 @@ public sealed partial class MainWindow : Window
 
             var dlg = new ContentDialog
             {
-                Title = "저장하지 않은 변경 사항",
-                Content = "프로젝트에 저장되지 않은 변경 사항이 있습니다.\n저장하시겠습니까?",
-                PrimaryButtonText = "저장",
-                SecondaryButtonText = "저장 안 함",
-                CloseButtonText = "취소",
+                Title = Loc.Get("dlg.unsaved_title"),
+                Content = Loc.Get("dlg.unsaved_msg"),
+                PrimaryButtonText = Loc.Get("dlg.save"),
+                SecondaryButtonText = Loc.Get("dlg.no_save"),
+                CloseButtonText = Loc.Get("dlg.cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = Root.XamlRoot,
                 FontFamily = AppFontFamily,
@@ -106,6 +110,66 @@ public sealed partial class MainWindow : Window
 
     private bool _confirmClose;
     private bool _isHomeScreen = true;
+
+    private void ApplyLocale()
+    {
+        // Menu bar
+        MenuSettings.Text    = Loc.Get("menu.settings");
+        MenuAbout.Text       = Loc.Get("menu.about");
+        MenuExit.Text        = Loc.Get("menu.exit");
+        MenuNewProject.Text  = Loc.Get("project.new");
+        MenuOpenProject.Text = Loc.Get("project.open");
+        MenuSave.Text        = Loc.Get("project.save");
+        MenuSaveAs.Text      = Loc.Get("project.save_as");
+
+        // Rail tooltips
+        ToolTipService.SetToolTip(RailHome,  Loc.Get("nav.home"));
+        ToolTipService.SetToolTip(RailTrim,  Loc.Get("nav.trim"));
+        ToolTipService.SetToolTip(RailSplit, Loc.Get("nav.split"));
+
+        // Segment panel
+        ListTitle.Text = Loc.Get("panel.trim_list");
+        if (TotalDurText.Inlines[0] is Run runTotalDurLabel)
+            runTotalDurLabel.Text = Loc.Get("panel.total_dur");
+        EmptyAddLabel.Text = Loc.Get("panel.add_video");
+
+        // Segment panel toolbar
+        ToolTipService.SetToolTip(BtnDeleteSeg, Loc.Get("btn.delete"));
+        ToolTipService.SetToolTip(BtnMoveUp2,   Loc.Get("btn.up"));
+        ToolTipService.SetToolTip(BtnMoveDown2, Loc.Get("btn.down"));
+        BtnAddVideo2.Content = Loc.Get("panel.add_video");
+
+        // Preview header
+        ToolTipService.SetToolTip(BtnResetTransform, Loc.Get("btn.reset_transform"));
+        ToolTipService.SetToolTip(BtnRotate90,        Loc.Get("btn.rotate90"));
+        ToolTipService.SetToolTip(BtnFlipH,           Loc.Get("btn.flip_h"));
+        ToolTipService.SetToolTip(BtnFlipV,           Loc.Get("btn.flip_v"));
+        ToolTipService.SetToolTip(BtnCaptureFrame,    Loc.Get("btn.capture"));
+
+        // Trim controls
+        LblSetStart.Text = Loc.Get("btn.set_start");
+        ToolTipService.SetToolTip(BtnSetStart,  Loc.Get("tip.set_start"));
+        LblSetEnd.Text   = Loc.Get("btn.set_end");
+        ToolTipService.SetToolTip(BtnSetEnd,    Loc.Get("tip.set_end"));
+        ToolTipService.SetToolTip(BtnRangePlay, Loc.Get("btn.play_range"));
+        ToolTipService.SetToolTip(BtnRangeStop, Loc.Get("btn.stop_range"));
+
+        // Split / merge options
+        MergeCheckbox.Content = Loc.Get("cb.merge");
+        RbSplitCount.Content  = Loc.Get("rb.split_count");
+        RbSplitTime.Content   = Loc.Get("rb.split_time");
+        BtnSplitRun.Content   = Loc.Get("btn.split_run");
+
+        // Start / cancel
+        StartButton.Content  = Loc.Get("btn.start");
+        CancelButton.Content = Loc.Get("btn.cancel");
+
+        // Home overlay
+        HomeTagline.Text  = Loc.Get("home.tagline");
+        TileTrimText.Text = Loc.Get("home.tile_trim");
+        TileSplitText.Text = Loc.Get("home.tile_split");
+        RecentTitle.Text  = Loc.Get("home.recent");
+    }
 
     /// <summary>다이얼로그는 XamlRoot만으론 폰트를 상속받지 못하므로 명시적으로 지정.</summary>
     private static Microsoft.UI.Xaml.Media.FontFamily AppFontFamily =>
@@ -219,8 +283,8 @@ public sealed partial class MainWindow : Window
         SplitOptions.Visibility = screen == "split" ? Visibility.Visible : Visibility.Collapsed;
         ListTitle.Text = screen switch
         {
-            "split" => "나누기 구간 목록",
-            _ => "자르기 구간 목록",
+            "split" => Loc.Get("panel.split_list"),
+            _ => Loc.Get("panel.trim_list"),
         };
         if (!home) VM.CurrentScreen = screen;
         UpdateStartButtonVisibility();
@@ -230,8 +294,12 @@ public sealed partial class MainWindow : Window
     private void OnRailTrim(object s, RoutedEventArgs e) => ShowScreen("trim");
     private void OnRailSplit(object s, RoutedEventArgs e) => ShowScreen("split");
 
-    private async void OnRailInfo(object s, RoutedEventArgs e) =>
-        await ShowMessageAsync("v-cut 정보", "v-cut 동영상 편집기\n버전 0.1.0\nFFmpeg 기반\n\nWinUI 3 / .NET 8");
+    private async void OnRailInfo(object s, RoutedEventArgs e)
+    {
+        var appVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        var verStr = appVer is null ? "0.1.0" : $"{appVer.Major}.{appVer.Minor}.{appVer.Build}";
+        await ShowMessageAsync(Loc.Get("dlg.about_title"), Loc.Format("dlg.about_msg", verStr));
+    }
 
     private void OnTileTrim(object s, RoutedEventArgs e)  => ShowScreen("trim");
     private void OnTileSplit(object s, RoutedEventArgs e) => ShowScreen("split");
@@ -260,7 +328,7 @@ public sealed partial class MainWindow : Window
     {
         if (VM.Segments.Count == 0)
         {
-            await ShowMessageAsync("알림", "먼저 편집할 영상을 추가하세요.");
+            await ShowMessageAsync(Loc.Get("dlg.notice"), Loc.Get("dlg.no_video_notice"));
             return;
         }
         var dlg = new OutputSettingsDialog(VM) { XamlRoot = Root.XamlRoot };
@@ -299,10 +367,10 @@ public sealed partial class MainWindow : Window
         {
             var dlg = new ContentDialog
             {
-                Title = "파일 없음",
-                Content = "이동되었거나 제거되었습니다.\n목록에서 지울까요?",
-                PrimaryButtonText = "목록에서 제거",
-                CloseButtonText = "취소",
+                Title = Loc.Get("dlg.missing_title"),
+                Content = Loc.Get("dlg.missing_msg"),
+                PrimaryButtonText = Loc.Get("dlg.remove_from_list"),
+                CloseButtonText = Loc.Get("dlg.cancel"),
                 XamlRoot = Root.XamlRoot,
                 FontFamily = AppFontFamily,
             };
@@ -519,7 +587,7 @@ public sealed partial class MainWindow : Window
         if (e.DataView.Contains(StandardDataFormats.StorageItems))
         {
             e.AcceptedOperation = DataPackageOperation.Copy;
-            e.DragUIOverride.Caption = "영상 추가";
+            e.DragUIOverride.Caption = Loc.Get("drag.add_video");
         }
         // 내부 순서 조정 드래그는 ListView가 자체 처리하도록 AcceptedOperation 미설정
     }
@@ -546,7 +614,7 @@ public sealed partial class MainWindow : Window
             SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
             SuggestedFileName = defaultName ?? "project",
         };
-        picker.FileTypeChoices.Add("v-cut 프로젝트", [".vcproj"]);
+        picker.FileTypeChoices.Add(Loc.Get("file.vcproj_type"), [".vcproj"]);
         InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
         var file = await picker.PickSaveFileAsync();
         return file?.Path;
@@ -594,7 +662,7 @@ public sealed partial class MainWindow : Window
                 Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
                 MaxHeight = 400,
             },
-            CloseButtonText = "확인",
+            CloseButtonText = Loc.Get("dlg.ok"),
             XamlRoot = Root.XamlRoot,
             FontFamily = AppFontFamily,
         };
@@ -605,7 +673,7 @@ public sealed partial class MainWindow : Window
     {
         var checkBox = new CheckBox
         {
-            Content = "다시 묻지 않기",
+            Content = Loc.Get("dlg.dont_ask"),
             Margin = new Microsoft.UI.Xaml.Thickness(0, 10, 0, 0),
         };
         var panel = new StackPanel { Spacing = 0 };
@@ -616,8 +684,8 @@ public sealed partial class MainWindow : Window
         {
             Title = title,
             Content = panel,
-            PrimaryButtonText = "예",
-            CloseButtonText = "아니요",
+            PrimaryButtonText = Loc.Get("dlg.yes"),
+            CloseButtonText = Loc.Get("dlg.no"),
             DefaultButton = ContentDialogButton.Primary,
             XamlRoot = Root.XamlRoot,
             FontFamily = AppFontFamily,

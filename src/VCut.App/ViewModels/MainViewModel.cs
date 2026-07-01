@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Diagnostics;
+using VCut.App.Locale;
 using VCut.App.Settings;
 using VCut.Core;
 using VCut.Core.FFmpeg;
@@ -49,14 +50,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel()
     {
+        MediaSummary = Loc.Get("vm.no_video");
         try
         {
             _editor = VideoEditor.Create();
-            StatusText = "준비됨 — " + _editor.FFmpegVersion;
+            StatusText = Loc.Format("vm.ready", _editor.FFmpegVersion);
         }
         catch (FFmpegException ex)
         {
-            StatusText = "ffmpeg를 찾을 수 없습니다: " + ex.Message;
+            StatusText = Loc.Format("vm.no_ffmpeg", ex.Message);
             EngineReady = false;
         }
         Segments.CollectionChanged += (_, e) =>
@@ -98,10 +100,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private bool _engineReady = true;
     [ObservableProperty] private string? _sourcePath;
-    [ObservableProperty] private string _mediaSummary = "동영상을 불러오세요.";
+    [ObservableProperty] private string _mediaSummary = "";
     [ObservableProperty] private bool _isFastMode = true;
     [ObservableProperty] private double _progressValue;
-    [ObservableProperty] private string _statusText = "준비됨";
+    [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private string _etaText = "";
 
     [ObservableProperty]
@@ -241,7 +243,7 @@ public sealed partial class MainViewModel : ObservableObject
         (IsModified ? "* " : "")
         + (_currentProjectPath is not null
             ? Path.GetFileNameWithoutExtension(_currentProjectPath)
-            : "새 프로젝트");
+            : Loc.Get("vm.new_project"));
 
     /// <summary>저장: 기존 파일이면 덮어쓰기, 새 프로젝트면 탐색기 열기.</summary>
     [RelayCommand]
@@ -292,9 +294,9 @@ public sealed partial class MainViewModel : ObservableObject
             CurrentProjectPath = savePath;
             IsModified = false;
             AddToRecentProjects(savePath);
-            StatusText = "프로젝트 저장: " + Path.GetFileName(savePath);
+            StatusText = Loc.Format("vm.proj_saved", Path.GetFileName(savePath));
         }
-        catch (Exception ex) { await Notify("저장 실패", ex.Message); }
+        catch (Exception ex) { await Notify(Loc.Get("vm.proj_save_fail"), ex.Message); }
     }
 
     /// <summary>새 프로젝트: 저장 위치 선택 → 빈 프로젝트 생성 → 편집 화면 이동.</summary>
@@ -302,7 +304,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task NewProjectAsync()
     {
         if (SaveProjectPicker is null) return;
-        var path = await SaveProjectPicker("새 프로젝트" + ProjectFile.Extension);
+        var path = await SaveProjectPicker(Loc.Get("vm.new_project") + ProjectFile.Extension);
         if (path is null) return;
 
         foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
@@ -327,7 +329,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (_editor is null) return;
         VCutProject project;
         try { project = await ProjectFile.LoadAsync(path); }
-        catch (Exception ex) { await Notify("프로젝트 열기 실패", ex.Message); return; }
+        catch (Exception ex) { await Notify(Loc.Get("vm.proj_open_fail"), ex.Message); return; }
 
         foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
         Segments.Clear();
@@ -339,7 +341,7 @@ public sealed partial class MainViewModel : ObservableObject
         int total = project.Clips.Count;
         IsBusy = true;
         ProgressValue = 0;
-        StatusText = total > 1 ? $"파일 분석 중… (0 / {total})" : "파일 분석 중…";
+        StatusText = total > 1 ? Loc.Format("vm.analyzing_n", 0, total) : Loc.Get("vm.analyzing");
         NotifyCommands();
         _cts = new CancellationTokenSource();
 
@@ -351,7 +353,7 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 _cts.Token.ThrowIfCancellationRequested();
                 idx++;
-                if (total > 1) StatusText = $"파일 분석 중… ({idx} / {total})";
+                if (total > 1) StatusText = Loc.Format("vm.analyzing_n", idx, total);
                 try
                 {
                     var info = await _editor.ProbeAsync(clip.Path, _cts.Token);
@@ -386,7 +388,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
             Segments.Clear();
-            StatusText = "취소됨";
+            StatusText = Loc.Get("vm.cancelled");
             Renumber();
             return;
         }
@@ -403,7 +405,7 @@ public sealed partial class MainViewModel : ObservableObject
         IsModified = false;
         if (first is not null) SelectedSegment = first;
         AddToRecentProjects(path);
-        StatusText = $"프로젝트 열기: {Path.GetFileName(path)}  ({Segments.Count}개 구간)";
+        StatusText = Loc.Format("vm.project_opened", Path.GetFileName(path), Segments.Count);
         NavigateTo?.Invoke(project.LastScreen);
     }
 
@@ -442,7 +444,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             IsBusy = true;
             ProgressValue = 0;
-            StatusText = $"파일 분석 중… (0 / {paths.Count})";
+            StatusText = Loc.Format("vm.analyzing_n", 0, paths.Count);
             NotifyCommands();
             _cts = new CancellationTokenSource();
         }
@@ -457,7 +459,7 @@ public sealed partial class MainViewModel : ObservableObject
                 if (multi)
                 {
                     if (_cts!.Token.IsCancellationRequested) { cancelled = true; break; }
-                    StatusText = $"파일 분석 중… ({i + 1} / {paths.Count})";
+                    StatusText = Loc.Format("vm.analyzing_n", i + 1, paths.Count);
                 }
                 try
                 {
@@ -478,7 +480,7 @@ public sealed partial class MainViewModel : ObservableObject
                 catch (OperationCanceledException) { cancelled = true; break; }
                 catch (Exception ex)
                 {
-                    await Notify("불러오기 실패", $"{Path.GetFileName(paths[i])}\n{ex.Message}");
+                    await Notify(Loc.Get("vm.load_fail"), $"{Path.GetFileName(paths[i])}\n{ex.Message}");
                 }
                 if (multi) ProgressValue = (double)(i + 1) / paths.Count * 100;
             }
@@ -502,14 +504,14 @@ public sealed partial class MainViewModel : ObservableObject
                 seg.RangeChanged -= OnSegmentRangeChanged;
                 Segments.Remove(seg);
             }
-            StatusText = "취소됨";
+            StatusText = Loc.Get("vm.cancelled");
             Renumber();
             return;
         }
 
         Renumber();
         if (first is not null) SelectedSegment = first;
-        StatusText = $"{Segments.Count}개 구간";
+        StatusText = Loc.Format("vm.segments_count", Segments.Count);
     }
 
     [RelayCommand]
@@ -588,7 +590,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SourcePath = null;
             MediaDuration = TimeSpan.Zero;
-            MediaSummary = "동영상을 불러오세요.";
+            MediaSummary = Loc.Get("vm.no_video");
             TrimStart = TimeSpan.Zero;
             TrimEnd = TimeSpan.Zero;
             ClearPreview?.Invoke();
@@ -598,7 +600,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SourcePath = null;
             MediaDuration = TimeSpan.Zero;
-            MediaSummary = $"{value.FileName}  ·  파일 없음";
+            MediaSummary = Loc.Format("vm.file_missing", value.FileName);
             TrimStart = TimeSpan.Zero;
             TrimEnd = TimeSpan.Zero;
             ClearPreview?.Invoke();
@@ -798,7 +800,7 @@ public sealed partial class MainViewModel : ObservableObject
                 _cts.Token);
             if (result.Success)
             {
-                StatusText = "캡처 완료";
+                StatusText = Loc.Get("vm.capture_done");
                 if (result.OutputFiles.Count > 0)
                 {
                     var s = SettingsStore.Current;
@@ -809,7 +811,7 @@ public sealed partial class MainViewModel : ObservableObject
                         open = false;
                     else if (ShowConfirm is not null)
                     {
-                        var (confirmed, dontAskAgain) = await ShowConfirm("캡처 완료", "저장 폴더를 여시겠습니까?");
+                        var (confirmed, dontAskAgain) = await ShowConfirm(Loc.Get("vm.capture_done"), Loc.Get("vm.capture_confirm"));
                         open = confirmed;
                         if (dontAskAgain)
                         {
@@ -826,14 +828,14 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else
             {
-                StatusText = "캡처 실패: " + result.ErrorMessage;
-                await Notify("캡처 실패", result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
+                StatusText = Loc.Format("vm.capture_fail", result.ErrorMessage);
+                await Notify(Loc.Get("vm.capture_fail_dlg"), result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
             }
         }
         catch (Exception ex)
         {
-            StatusText = "오류: " + ex.Message;
-            await Notify("오류", ex.Message);
+            StatusText = Loc.Format("vm.error", ex.Message);
+            await Notify(Loc.Get("vm.error_dlg"), ex.Message);
         }
         finally
         {
@@ -888,7 +890,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             ProgressValue = p.Percent;
             EtaText = $"{p.Speed:0.0}x";
-            StatusText = $"일괄 처리 중… {p.Percent}%";
+            StatusText = Loc.Format("vm.batch_progress", p.Percent);
         });
 
         try
@@ -904,15 +906,16 @@ public sealed partial class MainViewModel : ObservableObject
             };
             int ok = results.Count(r => r.Success);
             ProgressValue = 100;
-            StatusText = $"일괄 완료 — {ok}/{results.Count} 성공";
+            StatusText = Loc.Format("vm.batch_done", ok, results.Count);
             var failed = results.Where(r => !r.Success).Select(r => r.ErrorMessage).ToList();
-            await Notify("일괄 처리 완료",
-                $"{ok}/{results.Count} 성공" + (failed.Count > 0 ? "\n\n실패:\n" + string.Join('\n', failed) : ""));
+            var detail = Loc.Format("vm.batch_success", ok, results.Count)
+                + (failed.Count > 0 ? Loc.Format("vm.batch_failed_suffix", string.Join('\n', failed)) : "");
+            await Notify(Loc.Get("vm.batch_done_dlg"), detail);
         }
         catch (Exception ex)
         {
-            StatusText = "오류: " + ex.Message;
-            await Notify("오류", ex.Message);
+            StatusText = Loc.Format("vm.error", ex.Message);
+            await Notify(Loc.Get("vm.error_dlg"), ex.Message);
         }
         finally
         {
@@ -946,8 +949,10 @@ public sealed partial class MainViewModel : ObservableObject
         var progress = new Progress<ProgressInfo>(p =>
         {
             ProgressValue = p.Percent;
-            EtaText = p.Eta is { } e ? $"남은 시간 {e:mm\\:ss}  ·  {p.Speed:0.0}x" : $"{p.Speed:0.0}x";
-            StatusText = $"처리 중… {p.Percent}%";
+            EtaText = p.Eta is { } e
+                ? Loc.Format("vm.eta", e.ToString(@"mm\:ss"), p.Speed.ToString("0.0"))
+                : $"{p.Speed:0.0}x";
+            StatusText = Loc.Format("vm.processing", p.Percent);
         });
 
         try
@@ -957,19 +962,19 @@ public sealed partial class MainViewModel : ObservableObject
             if (result.Success)
             {
                 ProgressValue = 100;
-                StatusText = $"완료 — {result.OutputFiles.Count}개 파일 ({result.Elapsed.TotalSeconds:0.0}초)";
+                StatusText = Loc.Format("vm.done", result.OutputFiles.Count, result.Elapsed.TotalSeconds.ToString("0.0"));
                 await OpenOutputFolderIfEnabledAsync(result.OutputFiles);
             }
             else
             {
-                StatusText = "실패: " + result.ErrorMessage;
-                await Notify("작업 실패", result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
+                StatusText = Loc.Format("vm.run_fail", result.ErrorMessage);
+                await Notify(Loc.Get("vm.run_fail_dlg"), result.ErrorMessage + "\n\n" + (result.FFmpegLog ?? ""));
             }
         }
         catch (Exception ex)
         {
-            StatusText = "오류: " + ex.Message;
-            await Notify("오류", ex.Message);
+            StatusText = Loc.Format("vm.error", ex.Message);
+            await Notify(Loc.Get("vm.error_dlg"), ex.Message);
         }
         finally
         {
@@ -1015,7 +1020,7 @@ public sealed partial class MainViewModel : ObservableObject
             open = false;
         else if (ShowConfirm is not null)
         {
-            var (confirmed, dontAskAgain) = await ShowConfirm("작업 완료", "저장 폴더를 여시겠습니까?");
+            var (confirmed, dontAskAgain) = await ShowConfirm(Loc.Get("vm.task_done"), Loc.Get("vm.open_folder_q"));
             open = confirmed;
             if (dontAskAgain)
             {

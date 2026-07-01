@@ -14,26 +14,26 @@
     <StackPanel Spacing="14" Width="380">
         <!-- 출력 방식 -->
         <StackPanel Spacing="6">
-            <TextBlock Text="출력 방식" FontWeight="SemiBold" />
-            <ToggleSwitch IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}" OnContent="고속 모드 (화질 저하 없는 빠른 작업)" OffContent="변환 모드 (재인코딩)" />
+            <TextBlock x:Name="TxtModeHeader" Text="출력 방식" FontWeight="SemiBold" />
+            <ToggleSwitch x:Name="TglFastMode" IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}" OnContent="고속 모드 (화질 저하 없는 빠른 작업)" OffContent="변환 모드 (재인코딩)" />
         </StackPanel>
 
         <!-- 변환 모드 상세 -->
         <StackPanel Spacing="8" Visibility="{x:Bind VM.IsFastMode, Mode=OneWay, Converter={StaticResource NotToVisibilityConverter}}">
-            <ComboBox Header="파일 형식" SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
+            <ComboBox x:Name="CboFormat" Header="파일 형식" SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}" HorizontalAlignment="Stretch">
                 <ComboBoxItem Content="MP4" /><ComboBoxItem Content="MKV" /><ComboBoxItem Content="WebM (VP9)" /><ComboBoxItem Content="AVI" />
             </ComboBox>
-            <Slider Header="품질 (낮을수록 용량↓)" Minimum="10" Maximum="100" Value="{x:Bind VM.Quality, Mode=TwoWay}" />
-            <Slider Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)" Minimum="0.1" Maximum="16" StepFrequency="0.1" Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}" />
+            <Slider x:Name="SldQuality" Header="품질 (낮을수록 용량↓)" Minimum="10" Maximum="100" Value="{x:Bind VM.Quality, Mode=TwoWay}" />
+            <Slider x:Name="SldSpeed" Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)" Minimum="0.1" Maximum="16" StepFrequency="0.1" Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}" />
         </StackPanel>
 
         <!-- 옵션 -->
         <StackPanel Spacing="6">
-            <TextBlock Text="옵션" FontWeight="SemiBold" />
-            <CheckBox Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}" />
-            <CheckBox Content="재생 시간 정보를 텍스트(txt) 파일로 저장하기" IsChecked="{x:Bind VM.WritePlaybackInfo, Mode=TwoWay}" />
-            <CheckBox Content="오디오 트랙 추출하기 (.mp3)" IsChecked="{x:Bind VM.ExtractAudioOnly, Mode=TwoWay}" />
-            <CheckBox Content="오디오 트랙 제거하기" IsChecked="{x:Bind VM.RemoveAudio, Mode=TwoWay}" />
+            <TextBlock x:Name="TxtOptionsHeader" Text="옵션" FontWeight="SemiBold" />
+            <CheckBox x:Name="CbMerge" Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}" />
+            <CheckBox x:Name="CbSavePlayback" Content="재생 시간 정보를 텍스트(txt) 파일로 저장하기" IsChecked="{x:Bind VM.WritePlaybackInfo, Mode=TwoWay}" />
+            <CheckBox x:Name="CbExtractAudio" Content="오디오 트랙 추출하기 (.mp3)" IsChecked="{x:Bind VM.ExtractAudioOnly, Mode=TwoWay}" />
+            <CheckBox x:Name="CbRemoveAudio" Content="오디오 트랙 제거하기" IsChecked="{x:Bind VM.RemoveAudio, Mode=TwoWay}" />
         </StackPanel>
     </StackPanel>
 </ContentDialog>
