@@ -215,14 +215,13 @@ public sealed partial class MainWindow : Window
         EditGrid.Visibility = home ? Visibility.Collapsed : Visibility.Visible;
 
         // 모드별 옵션 표시.
+        MergeCheckbox.Visibility = screen == "trim" ? Visibility.Visible : Visibility.Collapsed;
         SplitOptions.Visibility = screen == "split" ? Visibility.Visible : Visibility.Collapsed;
         ListTitle.Text = screen switch
         {
             "split" => "나누기 구간 목록",
-            "merge" => "합치기 구간 목록",
             _ => "자르기 구간 목록",
         };
-        if (screen == "merge") VM.MergeEnabled = true;
         if (!home) VM.CurrentScreen = screen;
         UpdateStartButtonVisibility();
     }
@@ -230,14 +229,12 @@ public sealed partial class MainWindow : Window
     private void OnRailHome(object s, RoutedEventArgs e) => ShowScreen("home");
     private void OnRailTrim(object s, RoutedEventArgs e) => ShowScreen("trim");
     private void OnRailSplit(object s, RoutedEventArgs e) => ShowScreen("split");
-    private void OnRailMerge(object s, RoutedEventArgs e) => ShowScreen("merge");
 
     private async void OnRailInfo(object s, RoutedEventArgs e) =>
         await ShowMessageAsync("v-cut 정보", "v-cut 동영상 편집기\n버전 0.1.0\nFFmpeg 기반\n\nWinUI 3 / .NET 8");
 
     private void OnTileTrim(object s, RoutedEventArgs e)  => ShowScreen("trim");
     private void OnTileSplit(object s, RoutedEventArgs e) => ShowScreen("split");
-    private void OnTileMerge(object s, RoutedEventArgs e) => ShowScreen("merge");
 
     // ════════ 단축키 ════════
     private void SetupShortcuts()

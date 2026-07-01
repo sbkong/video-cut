@@ -10,7 +10,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}" KeyboardAcceleratorPlacementMode="Hidden">
+    <Grid x:Name="Root" RowDefinitions="44,*,26" Background="{StaticResource BcAppBrush}" KeyboardAcceleratorPlacementMode="Hidden">
 
         <!-- ════════ 메뉴 바 ════════ -->
         <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,Auto,Auto,*">
@@ -86,7 +86,6 @@
                     <Button x:Name="RailHome" Style="{StaticResource RailButtonStyle}" Click="OnRailHome" ToolTipService.ToolTip="홈"><FontIcon Glyph="&#xE80F;" /></Button>
                     <Button x:Name="RailTrim" Style="{StaticResource RailButtonStyle}" Click="OnRailTrim" ToolTipService.ToolTip="자르기"><FontIcon Glyph="&#xE8C6;" /></Button>
                     <Button x:Name="RailSplit" Style="{StaticResource RailButtonStyle}" Click="OnRailSplit" ToolTipService.ToolTip="나누기"><FontIcon Glyph="&#xE8CA;" /></Button>
-                    <Button x:Name="RailMerge" Style="{StaticResource RailButtonStyle}" Click="OnRailMerge" ToolTipService.ToolTip="합치기"><FontIcon Glyph="&#xE8E9;" /></Button>
                 </StackPanel>
                 <StackPanel Grid.Row="2" />
             </Grid>
@@ -266,18 +265,29 @@
 
                     </StackPanel>
 
-                    <!-- 합치기 + 나누기 옵션 -->
-                    <Grid Grid.Row="3" Margin="0,8,0,0">
-                        <CheckBox Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}" Foreground="{StaticResource BcTextBrush}" />
-                        <StackPanel x:Name="SplitOptions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Visibility="Collapsed">
-                            <RadioButton Content="개수" GroupName="sp" IsChecked="{x:Bind VM.SplitByCount, Mode=TwoWay}" MinWidth="0" />
-                            <NumberBox Value="{x:Bind VM.SplitCount, Mode=TwoWay}" Minimum="2" Maximum="99" Width="90" SpinButtonPlacementMode="Inline" />
-                            <RadioButton Content="시간(초)" GroupName="sp" MinWidth="0" />
-                            <NumberBox Value="{x:Bind VM.SplitSeconds, Mode=TwoWay}" Minimum="1" Width="90" SpinButtonPlacementMode="Inline" IsEnabled="{x:Bind VM.SplitByTime, Mode=OneWay}" />
-                            <Button Content="나누기 실행" Command="{x:Bind VM.RunSplitCommand}" />
+                    <!-- 옵션(화면별) + 시작/취소 (모든 화면 공용) -->
+                    <Grid Grid.Row="3" Margin="0,8,0,0" ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <CheckBox x:Name="MergeCheckbox" Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}"
+                                      Foreground="{StaticResource BcTextBrush}" MinWidth="0" Visibility="Collapsed" />
+                            <StackPanel x:Name="SplitOptions" Orientation="Horizontal" Spacing="8"
+                                        VerticalAlignment="Center" Visibility="Collapsed">
+                                <RadioButton Content="개수" GroupName="sp" IsChecked="{x:Bind VM.SplitByCount, Mode=TwoWay}" MinWidth="0" />
+                                <NumberBox Value="{x:Bind VM.SplitCount, Mode=TwoWay}" Minimum="2" Maximum="99" Width="80" SpinButtonPlacementMode="Compact" />
+                                <RadioButton Content="시간(초)" GroupName="sp" MinWidth="0" />
+                                <NumberBox Value="{x:Bind VM.SplitSeconds, Mode=TwoWay}" Minimum="1" Width="80" SpinButtonPlacementMode="Compact" IsEnabled="{x:Bind VM.SplitByTime, Mode=OneWay}" />
+                                <Button Content="나누기 실행" Command="{x:Bind VM.RunSplitCommand}" Padding="10,0" />
+                            </StackPanel>
                         </StackPanel>
+                        <Grid Grid.Column="1">
+                            <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
+                            <Button x:Name="CancelButton" Content="취소" Style="{StaticResource CancelButtonStyle}" Command="{x:Bind VM.CancelCommand}" Visibility="Collapsed" />
+                        </Grid>
                     </Grid>
                 </Grid>
+
+                <!-- 구간목록 / 미리보기 경계선 -->
+                <Border Grid.Column="1" HorizontalAlignment="Left" Width="1" Background="{StaticResource BcDividerBrush}" />
             </Grid>
 
             <!-- 홈 화면 오버레이(3 타일 + 최근 프로젝트) -->
@@ -317,9 +327,6 @@
                         </Button>
                         <Button Click="OnTileSplit" Width="158" Height="158" Background="{StaticResource BcCardBrush}" CornerRadius="10">
                             <StackPanel Spacing="12"><FontIcon Glyph="&#xE8CA;" FontSize="40" Foreground="{StaticResource BcAccentBrush}" /><TextBlock Text="나누기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" /></StackPanel>
-                        </Button>
-                        <Button Click="OnTileMerge" Width="158" Height="158" Background="{StaticResource BcCardBrush}" CornerRadius="10">
-                            <StackPanel Spacing="12"><FontIcon Glyph="&#xE8E9;" FontSize="40" Foreground="{StaticResource BcAccentBrush}" /><TextBlock Text="합치기" Foreground="{StaticResource BcTextBrush}" HorizontalAlignment="Center" FontSize="14" FontWeight="SemiBold" /></StackPanel>
                         </Button>
                     </StackPanel>
                 </StackPanel>
@@ -363,22 +370,24 @@
                 </Grid>
 
             </Grid>
+
+            <!-- 상단 프로젝트 바 / 본문 경계선 -->
+            <Border Grid.ColumnSpan="2" VerticalAlignment="Top" Height="1" Background="{StaticResource BcDividerBrush}" />
+            <!-- 레일 / 본문 경계선 -->
+            <Border Grid.Column="1" HorizontalAlignment="Left" Width="1" Background="{StaticResource BcDividerBrush}" />
         </Grid>
 
-        <!-- ════════ 하단 바 ════════ -->
-        <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,*,Auto" Padding="12,6">
+        <!-- ════════ 하단 바(상태 바) ════════ -->
+        <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" ColumnDefinitions="Auto,*,Auto,Auto" Padding="12,0">
+            <Border Grid.ColumnSpan="4" VerticalAlignment="Top" Height="1" Background="{StaticResource BcDividerBrush}" />
             <Grid Grid.Column="0" />
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0">
-                <ProgressBar Value="{x:Bind VM.ProgressValue, Mode=OneWay}" Maximum="100" />
-                <TextBlock Text="{x:Bind VM.StatusText, Mode=OneWay}" FontSize="11" Foreground="{StaticResource BcTextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <TextBlock Text="{x:Bind VM.EtaText, Mode=OneWay}" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource BcTextSecondaryBrush}" />
-                <Grid>
-                    <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
-                    <Button x:Name="CancelButton" Content="취소" Style="{StaticResource CancelButtonStyle}" Command="{x:Bind VM.CancelCommand}" Visibility="Collapsed" />
-                </Grid>
-            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{x:Bind VM.StatusText, Mode=OneWay}" VerticalAlignment="Center"
+                       FontSize="11" Foreground="{StaticResource BcTextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Grid.Column="2" Text="{x:Bind VM.EtaText, Mode=OneWay}" VerticalAlignment="Center"
+                       FontSize="11" Margin="0,0,10,0" Foreground="{StaticResource BcTextSecondaryBrush}" />
+            <ProgressBar Grid.Column="3" Width="120" VerticalAlignment="Center"
+                         Value="{x:Bind VM.ProgressValue, Mode=OneWay}" Maximum="100"
+                         Visibility="{x:Bind VM.IsBusy, Mode=OneWay}" />
         </Grid>
     </Grid>
 </Window>
