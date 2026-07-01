@@ -384,6 +384,8 @@ public sealed partial class MainViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
+            foreach (var seg in Segments) seg.RangeChanged -= OnSegmentRangeChanged;
+            Segments.Clear();
             StatusText = "취소됨";
             Renumber();
             return;
@@ -446,13 +448,15 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         ClipSegment? first = null;
+        var added = new List<ClipSegment>();
+        bool cancelled = false;
         try
         {
             for (int i = 0; i < paths.Count; i++)
             {
                 if (multi)
                 {
-                    if (_cts!.Token.IsCancellationRequested) break;
+                    if (_cts!.Token.IsCancellationRequested) { cancelled = true; break; }
                     StatusText = $"파일 분석 중… ({i + 1} / {paths.Count})";
                 }
                 try
@@ -466,11 +470,12 @@ public sealed partial class MainViewModel : ObservableObject
                         End = info.Duration,
                     };
                     Segments.Add(seg);
+                    added.Add(seg);
                     seg.RangeChanged += OnSegmentRangeChanged;
                     _ = seg.LoadThumbnailAsync();
                     first ??= seg;
                 }
-                catch (OperationCanceledException) { break; }
+                catch (OperationCanceledException) { cancelled = true; break; }
                 catch (Exception ex)
                 {
                     await Notify("불러오기 실패", $"{Path.GetFileName(paths[i])}\n{ex.Message}");
@@ -488,6 +493,18 @@ public sealed partial class MainViewModel : ObservableObject
                 _cts = null;
                 NotifyCommands();
             }
+        }
+
+        if (cancelled)
+        {
+            foreach (var seg in added)
+            {
+                seg.RangeChanged -= OnSegmentRangeChanged;
+                Segments.Remove(seg);
+            }
+            StatusText = "취소됨";
+            Renumber();
+            return;
         }
 
         Renumber();
