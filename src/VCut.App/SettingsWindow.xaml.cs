@@ -1,12 +1,18 @@
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Documents;
+using Microsoft.UI.Xaml.Input;
+using VCut.App.Keymap;
 using VCut.App.Locale;
 using VCut.App.Settings;
 using VCut.Core.Models;
 using Windows.Storage.Pickers;
+using Windows.System;
 using WinRT.Interop;
 
 namespace VCut.App;
@@ -18,6 +24,9 @@ public sealed partial class SettingsWindow : WindowBase
 
     /// <summary>저장되었는지 여부. 메인 윈도우가 닫힌 뒤 재적용 판단에 사용.</summary>
     public bool Saved { get; private set; }
+
+    /// <summary>'단축키' 탭 목록(액션 이름 + 현재 단축키).</summary>
+    public ObservableCollection<KeymapRowVm> KeymapRows { get; } = [];
 
     public SettingsWindow()
     {
@@ -51,6 +60,7 @@ public sealed partial class SettingsWindow : WindowBase
         NavFastMode.Content = Loc.Get("nav.fast_mode");
         NavTheme.Content    = Loc.Get("nav.theme");
         NavFont.Content     = Loc.Get("nav.font");
+        NavKeymap.Content   = Loc.Get("nav.keymap");
 
         // Panel: general
         CbWarnUnseekable.Content = Loc.Get("gen.warn_unseekable");
@@ -67,6 +77,7 @@ public sealed partial class SettingsWindow : WindowBase
         CbDeinterlace.Content    = Loc.Get("play.deinterlace");
         CbHwRenderer.Content     = Loc.Get("play.hw_renderer");
         CbHwDecoder.Content      = Loc.Get("play.hw_decoder");
+        NumSeekSeconds.Header    = Loc.Get("play.seek_seconds");
         TxtPlayNote.Text         = Loc.Get("play.note");
 
         // Panel: files
@@ -119,8 +130,13 @@ public sealed partial class SettingsWindow : WindowBase
         SystemFontCombo.Header     = Loc.Get("font.system_header");
         TxtFontNote.Text           = Loc.Get("font.note");
 
+        // Panel: keymap
+        KeymapSearchBox.PlaceholderText = Loc.Get("keymap.search_ph");
+        TxtKeymapNote.Text              = Loc.Get("keymap.note");
+
         // Bottom bar
         BtnRestart.Content        = Loc.Get("settings.btn.restart");
+        BtnResetAll.Content       = Loc.Get("settings.btn.reset_all");
         BtnReset.Content          = Loc.Get("settings.btn.reset");
         BtnCancelSettings.Content = Loc.Get("settings.btn.cancel");
         BtnSaveSettings.Content   = Loc.Get("settings.btn.save");
@@ -156,7 +172,100 @@ public sealed partial class SettingsWindow : WindowBase
         FontSystemRadio.IsChecked      = S.Font == FontChoice.System;
         SystemFontCombo.IsEnabled      = S.Font == FontChoice.System;
 
+        BuildKeymapRows();
         UpdateRestartButton();
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 단축키
+    // ────────────────────────────────────────────────────────────────
+    private void BuildKeymapRows()
+    {
+        KeymapRows.Clear();
+        foreach (var def in KeymapActions.All)
+            KeymapRows.Add(new KeymapRowVm(def.Id, Loc.Get(def.LocKey), Loc.Get(def.CategoryLocKey)));
+        RefreshKeymapShortcuts();
+        ApplyKeymapFilter();
+    }
+
+    private void RefreshKeymapShortcuts()
+    {
+        foreach (var row in KeymapRows)
+        {
+            var combo = KeymapActions.ResolveCombo(S, row.Id);
+            row.Shortcut = string.IsNullOrEmpty(combo) ? Loc.Get("keymap.unassigned") : combo;
+        }
+    }
+
+    /// <summary>검색어로 필터링 후 카테고리별로 그룹화하여 목록에 반영.</summary>
+    private void ApplyKeymapFilter()
+    {
+        var filter = KeymapSearchBox.Text?.Trim() ?? "";
+        IEnumerable<KeymapRowVm> rows = KeymapRows;
+        if (!string.IsNullOrEmpty(filter))
+            rows = rows.Where(r => r.Name.Contains(filter, StringComparison.CurrentCultureIgnoreCase));
+
+        var grouped = rows.GroupBy(r => r.Category).ToList();
+        KeymapList.ItemsSource = new CollectionViewSource { IsSourceGrouped = true, Source = grouped }.View;
+    }
+
+    private void OnKeymapSearchChanged(object sender, TextChangedEventArgs e) => ApplyKeymapFilter();
+
+    private void OnKeymapListKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        if (KeymapList.SelectedItem is not KeymapRowVm row) return;
+        e.Handled = true;
+        _ = OpenKeymapEditorAsync(row.Id);
+    }
+
+    private void OnKeymapRowDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string actionId }) _ = OpenKeymapEditorAsync(actionId);
+    }
+
+    private void OnKeymapContextChange(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string actionId }) _ = OpenKeymapEditorAsync(actionId);
+    }
+
+    private void OnKeymapContextReset(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string actionId }) return;
+        S.Keymap.Remove(actionId);
+        RefreshKeymapShortcuts();
+    }
+
+    private async Task OpenKeymapEditorAsync(string actionId)
+    {
+        var def = KeymapActions.All.FirstOrDefault(a => a.Id == actionId);
+        if (def is null) return;
+
+        var current = KeymapActions.ResolveCombo(S, actionId);
+        var dialog = new KeymapEditDialog(Loc.Get(def.LocKey), current) { XamlRoot = Content.XamlRoot };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+
+        var newCombo = dialog.ResultCombo;
+        var conflictId = KeymapActions.FindConflict(S, newCombo, actionId);
+        if (conflictId is not null)
+        {
+            var conflictDef = KeymapActions.All.First(a => a.Id == conflictId);
+            var confirm = new ContentDialog
+            {
+                Title = Loc.Get("keymap.conflict_title"),
+                Content = Loc.Format("keymap.conflict_msg", Loc.Get(conflictDef.LocKey)),
+                PrimaryButtonText = Loc.Get("dlg.yes"),
+                CloseButtonText = Loc.Get("dlg.no"),
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = Content.XamlRoot,
+                FontFamily = FontService.Resolve(SettingsStore.Current),
+            };
+            if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+            S.Keymap[conflictId] = "";
+        }
+
+        S.Keymap[actionId] = newCombo;
+        RefreshKeymapShortcuts();
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -217,9 +326,13 @@ public sealed partial class SettingsWindow : WindowBase
     // ────────────────────────────────────────────────────────────────
     // 왼쪽 네비게이션
     // ────────────────────────────────────────────────────────────────
+    /// <summary>현재 선택된 네비게이션 탭 인덱스(0=일반 … 7=단축키). [초기화] 버튼이 참조.</summary>
+    private int _navIndex;
+
     private void OnNavChecked(object sender, RoutedEventArgs e)
     {
         if (sender is not RadioButton rb || !int.TryParse(rb.Tag?.ToString(), out int idx)) return;
+        _navIndex = idx;
         PanelGeneral.Visibility  = idx == 0 ? Visibility.Visible : Visibility.Collapsed;
         PanelPlayback.Visibility = idx == 1 ? Visibility.Visible : Visibility.Collapsed;
         PanelFiles.Visibility    = idx == 2 ? Visibility.Visible : Visibility.Collapsed;
@@ -227,6 +340,7 @@ public sealed partial class SettingsWindow : WindowBase
         PanelFastMode.Visibility = idx == 4 ? Visibility.Visible : Visibility.Collapsed;
         PanelTheme.Visibility    = idx == 5 ? Visibility.Visible : Visibility.Collapsed;
         PanelFont.Visibility     = idx == 6 ? Visibility.Visible : Visibility.Collapsed;
+        PanelKeymap.Visibility   = idx == 7 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -324,7 +438,65 @@ public sealed partial class SettingsWindow : WindowBase
         Close();
     }
 
+    /// <summary>[초기화] — 현재 탭에 속한 값만 기본값으로 되돌림.</summary>
     private void OnReset(object sender, RoutedEventArgs e)
+    {
+        var def = new AppSettings();
+        switch (_navIndex)
+        {
+            case 0: // 일반
+                S.WarnUnseekable = def.WarnUnseekable;
+                S.WarnFileExists = def.WarnFileExists;
+                S.ShowProjectSaveMessage = def.ShowProjectSaveMessage;
+                S.CreateLogFile = def.CreateLogFile;
+                S.MoovAtFront = def.MoovAtFront;
+                S.KeepCreationTime = def.KeepCreationTime;
+                S.ShowTips = def.ShowTips;
+                S.AutoAdvanceCursor = def.AutoAdvanceCursor;
+                break;
+            case 1: // 재생
+                S.WarnUnplayable = def.WarnUnplayable;
+                S.DeinterlaceOnPlay = def.DeinterlaceOnPlay;
+                S.HardwareRenderer = def.HardwareRenderer;
+                S.UseHardwareDecoder = def.UseHardwareDecoder;
+                S.SeekSeconds = def.SeekSeconds;
+                break;
+            case 2: // 파일
+                S.SaveFolderMode = def.SaveFolderMode;
+                S.SaveFolder = def.SaveFolder;
+                S.CaptureFolderMode = def.CaptureFolderMode;
+                S.CaptureFolder = def.CaptureFolder;
+                S.CaptureOpenFolderMode = def.CaptureOpenFolderMode;
+                S.OutputOpenFolderMode = def.OutputOpenFolderMode;
+                S.TempFolder = def.TempFolder;
+                break;
+            case 3: // 언어
+                S.Language = def.Language;
+                break;
+            case 4: // 고속 모드
+                S.WarnFastUnavailable = def.WarnFastUnavailable;
+                S.AlwaysKeyframe = def.AlwaysKeyframe;
+                S.WarnStartShift = def.WarnStartShift;
+                S.RelaxFastMerge = def.RelaxFastMerge;
+                S.DefaultHardwareAccel = def.DefaultHardwareAccel;
+                break;
+            case 5: // 테마
+                S.Theme = def.Theme;
+                break;
+            case 6: // 폰트
+                S.Font = def.Font;
+                S.SystemFontFamily = def.SystemFontFamily;
+                break;
+            case 7: // 단축키
+                S.Keymap.Clear();
+                break;
+        }
+        LoadNonBound(); // ThemeDarkRadio.IsChecked = true → OnThemeRadioChecked 발동
+        Bindings.Update();
+    }
+
+    /// <summary>[전체 초기화] — 모든 탭의 값을 기본값으로 되돌림.</summary>
+    private void OnResetAll(object sender, RoutedEventArgs e)
     {
         S = new AppSettings();
         LoadNonBound(); // ThemeDarkRadio.IsChecked = true → OnThemeRadioChecked 발동

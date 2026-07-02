@@ -311,7 +311,9 @@ public sealed partial class VideoPreview : UserControl
 
     // ── 트랜스포트 버튼 ───────────────────────────────────────────────────
 
-    private void OnPlayPause(object sender, RoutedEventArgs e)
+    private void OnPlayPause(object sender, RoutedEventArgs e) => TogglePlayPause();
+
+    public void TogglePlayPause()
     {
         if (Session.PlaybackState == MediaPlaybackState.Playing)
         {
@@ -413,10 +415,11 @@ public sealed partial class VideoPreview : UserControl
 
     // ── 프레임 이동 ───────────────────────────────────────────────────────
 
-    private void StepFrames(int frames)
+    public void StepFrames(int frames) => Seek(frames / _frameRate);
+
+    public void Seek(double seconds)
     {
-        var delta = TimeSpan.FromSeconds(frames / _frameRate);
-        var next  = Session.Position + delta;
+        var next = Session.Position + TimeSpan.FromSeconds(seconds);
         if (next < TimeSpan.Zero) next = TimeSpan.Zero;
         if (Session.NaturalDuration > TimeSpan.Zero && next > Session.NaturalDuration)
             next = Session.NaturalDuration;

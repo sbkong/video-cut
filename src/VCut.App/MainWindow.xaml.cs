@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using VCut.App.Keymap;
 using VCut.App.Locale;
 using VCut.App.ViewModels;
 using Windows.ApplicationModel.DataTransfer;
@@ -307,22 +308,67 @@ public sealed partial class MainWindow : Window
     private void OnTileSplit(object s, RoutedEventArgs e) => ShowScreen("split");
 
     // ════════ 단축키 ════════
+    /// <summary>설정창 '단축키' 탭에서 재할당 가능한 액션 → 실행 위임 매핑.</summary>
+    private Dictionary<string, Action> BuildKeymapActionMap() => new()
+    {
+        ["open_file"]       = () => _ = VM.OpenCommand.ExecuteAsync(null),
+        ["save_project"]    = () => _ = VM.SaveProjectCommand.ExecuteAsync(null),
+        ["save_project_as"] = () => _ = VM.SaveProjectAsCommand.ExecuteAsync(null),
+        ["open_project"]    = () => _ = VM.OpenProjectCommand.ExecuteAsync(null),
+        ["open_settings"]   = OpenSettings,
+        ["remove_clip"]     = () => VM.RemoveSelectedClipCommand.Execute(null),
+
+        ["set_start"]       = () => VM.TrimStart = Preview.Position,
+        ["set_end"]         = () => VM.TrimEnd = Preview.Position,
+        ["play_pause"]      = () => Preview.TogglePlayPause(),
+        ["seek_backward"]   = () => Preview.Seek(-Settings.SettingsStore.Current.SeekSeconds),
+        ["seek_forward"]    = () => Preview.Seek(Settings.SettingsStore.Current.SeekSeconds),
+        ["prev_frame"]      = () => Preview.StepFrames(-1),
+        ["next_frame"]      = () => Preview.StepFrames(1),
+        ["prev_keyframe"]   = () => Preview.StepFrames(-(int)Preview.FrameRate),
+        ["next_keyframe"]   = () => Preview.StepFrames((int)Preview.FrameRate),
+    };
+
+    private Dictionary<string, Action> _keymapActions = new();
+    private bool _shortcutsHooked;
+
+    /// <summary>현재 저장된 설정(기본값/사용자 재할당)에 맞춰 단축키 실행 매핑을 (재)구성.
+    /// 설정창에서 단축키를 변경/저장하면 재시작 없이 다시 호출됨.</summary>
     private void SetupShortcuts()
     {
-        AddAccel(VirtualKey.F2, VirtualKeyModifiers.None, () => _ = VM.OpenCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.F5, VirtualKeyModifiers.None, OpenSettings);
-        AddAccel(VirtualKey.O, VirtualKeyModifiers.Control, () => _ = VM.OpenCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.S, VirtualKeyModifiers.Control, () => _ = VM.SaveProjectCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.S, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, () => _ = VM.SaveProjectAsCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.P, VirtualKeyModifiers.Control, () => _ = VM.OpenProjectCommand.ExecuteAsync(null));
-        AddAccel(VirtualKey.Delete, VirtualKeyModifiers.None, () => VM.RemoveSelectedClipCommand.Execute(null));
+        _keymapActions = BuildKeymapActionMap();
+        if (_shortcutsHooked) return;
+        _shortcutsHooked = true;
+
+        // KeyboardAccelerator는 포커스가 있는 컨트롤(Button/Slider/ListView 등)이 같은 키를
+        // 자체적으로 처리(Space=클릭, 방향키=포커스 이동 등)하는 경우 무시되는 경우가 있어,
+        // handledEventsToo로 항상 가로채는 라우티드 KeyDown을 사용해 신뢰성을 확보한다.
+        Root.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnGlobalKeyDown), true);
     }
 
-    private void AddAccel(VirtualKey key, VirtualKeyModifiers mod, Action handler)
+    private void OnGlobalKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        var accel = new KeyboardAccelerator { Key = key, Modifiers = mod };
-        accel.Invoked += (s, e) => { handler(); e.Handled = true; };
-        Root.KeyboardAccelerators.Add(accel);
+        if (KeyComboText.IsModifierKey(e.Key)) return;
+
+        var combo = KeyComboText.Format(e.Key, KeyComboText.CurrentModifiers());
+        if (string.IsNullOrEmpty(combo)) return;
+
+        // 파일 열기의 보조(레거시) 단축키. 사용자 재할당과 무관하게 항상 유지.
+        if (combo.Equals("F2", StringComparison.OrdinalIgnoreCase))
+        {
+            _ = VM.OpenCommand.ExecuteAsync(null);
+            e.Handled = true;
+            return;
+        }
+
+        foreach (var def in KeymapActions.All)
+        {
+            if (!_keymapActions.TryGetValue(def.Id, out var handler)) continue;
+            if (!string.Equals(KeymapActions.ResolveCombo(Settings.SettingsStore.Current, def.Id), combo, StringComparison.OrdinalIgnoreCase)) continue;
+            handler();
+            e.Handled = true;
+            return;
+        }
     }
 
     // ════════ 시작 → 출력 설정 → 실행 ════════
@@ -345,7 +391,13 @@ public sealed partial class MainWindow : Window
     }
 
     private void OnOpenSettings(object sender, RoutedEventArgs e) => OpenSettings();
-    private void OpenSettings() => new SettingsWindow().Activate();
+
+    private void OpenSettings()
+    {
+        var win = new SettingsWindow();
+        win.Closed += (_, _) => { if (win.Saved) SetupShortcuts(); };
+        win.Activate();
+    }
     private void OnExit(object sender, RoutedEventArgs e) => Application.Current.Exit();
 
     private void OnRestart(object sender, RoutedEventArgs e)

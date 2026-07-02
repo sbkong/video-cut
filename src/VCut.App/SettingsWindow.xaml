@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:VCut.App"
+    xmlns:km="using:VCut.App.Keymap"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -95,6 +96,8 @@
                              Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="5"/>
                 <RadioButton x:Name="NavFont"     Content="폰트"      GroupName="nav"
                              Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="6"/>
+                <RadioButton x:Name="NavKeymap"   Content="단축키"    GroupName="nav"
+                             Style="{StaticResource NavItemStyle}" Checked="OnNavChecked" Tag="7"/>
             </StackPanel>
 
             <!-- 콘텐츠 영역 (패널들이 겹쳐 쌓이고 가시성으로 전환) -->
@@ -145,6 +148,10 @@
                         <CheckBox x:Name="CbHwDecoder" Content="하드웨어 디코더 사용"
                                   IsChecked="{x:Bind S.UseHardwareDecoder, Mode=TwoWay}"
                                   Foreground="{StaticResource BcTextBrush}"/>
+                        <NumberBox x:Name="NumSeekSeconds" Margin="0,4,0,0"
+                                   HorizontalAlignment="Left" Width="160"
+                                   Minimum="1" Maximum="600" SmallChange="1" SpinButtonPlacementMode="Compact"
+                                   Value="{x:Bind S.SeekSeconds, Mode=TwoWay}"/>
                         <TextBlock x:Name="TxtPlayNote"
                                    Text="※ 재생 관련 항목은 미리보기 동작에 점진 반영됩니다."
                                    FontSize="11.5"
@@ -353,6 +360,55 @@
                     </StackPanel>
                 </ScrollViewer>
 
+                <!-- ── 단축키 ── -->
+                <Grid x:Name="PanelKeymap" Visibility="Collapsed" Padding="16,12,16,16" RowDefinitions="Auto,Auto,*">
+                    <TextBox Grid.Row="0" x:Name="KeymapSearchBox" Margin="0,0,0,6"
+                             TextChanged="OnKeymapSearchChanged"/>
+                    <TextBlock Grid.Row="1" x:Name="TxtKeymapNote"
+                               FontSize="11" Margin="2,0,0,4"
+                               Foreground="{StaticResource BcTextSecondaryBrush}"/>
+                    <ListView Grid.Row="2" x:Name="KeymapList" SelectionMode="Single"
+                              Padding="0" KeyDown="OnKeymapListKeyDown">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="km:KeymapRowVm">
+                                <Grid ColumnDefinitions="*,Auto" Padding="6,6" Tag="{x:Bind Id}"
+                                      DoubleTapped="OnKeymapRowDoubleTapped">
+                                    <Grid.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="단축키 변경..." Tag="{x:Bind Id}" Click="OnKeymapContextChange"/>
+                                            <MenuFlyoutItem Text="기본값으로 재설정" Tag="{x:Bind Id}" Click="OnKeymapContextReset"/>
+                                        </MenuFlyout>
+                                    </Grid.ContextFlyout>
+                                    <TextBlock Grid.Column="0" Text="{x:Bind Name}" FontSize="12.5"
+                                               Foreground="{StaticResource BcTextBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Shortcut, Mode=OneWay}" FontSize="11.5"
+                                               Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center"
+                                               Margin="12,0,4,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Group.Key}" FontSize="10.5" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                   Margin="4,10,0,2"/>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+
             </Grid>
         </Grid>
 
@@ -361,6 +417,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         Spacing="8" VerticalAlignment="Center">
                 <Button x:Name="BtnRestart" Content="지금 재시작" Click="OnRestartNow" Visibility="Collapsed"/>
+                <Button x:Name="BtnResetAll" Content="전체 초기화" Click="OnResetAll"/>
                 <Button x:Name="BtnReset" Content="초기화" Click="OnReset"/>
                 <Button x:Name="BtnCancelSettings" Content="취소" Click="OnCancel"/>
                 <Button x:Name="BtnSaveSettings" Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}"/>

@@ -113,10 +113,18 @@ public sealed class AppSettings
     // ── 최근 프로젝트 ──
     public List<string> RecentProjects { get; set; } = [];
 
+    // ── 단축키 ──
+    /// <summary>사용자 지정 단축키 재할당(액션ID → "Ctrl+Shift+S" 형식 문자열).
+    /// 키가 없으면 기본 단축키 사용, 값이 빈 문자열이면 단축키 없음(명시적 해제).</summary>
+    public Dictionary<string, string> Keymap { get; set; } = new();
+    /// <summary>"N초 앞으로/뒤로" 단축키(←/→)가 한 번에 이동하는 초 단위 간격.</summary>
+    public double SeekSeconds { get; set; } = 5;
+
     public AppSettings Clone()
     {
         var clone = (AppSettings)MemberwiseClone();
         clone.RecentProjects = [.. RecentProjects];
+        clone.Keymap = new Dictionary<string, string>(Keymap);
         return clone;
     }
 
