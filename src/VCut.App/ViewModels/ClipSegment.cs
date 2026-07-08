@@ -29,6 +29,26 @@ public sealed partial class ClipSegment : ObservableObject
         _end = duration;
     }
 
+    /// <summary>null이면 이 항목 자신이 루트(파일). 아니면 소속된 루트 인스턴스를 가리킴("구간 추가"로 만들어진 하위 항목).
+    /// 부모가 삭제되면서 최상위로 승격될 때 null로 바뀔 수 있어 mutable.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChild))]
+    [NotifyPropertyChangedFor(nameof(CardIndent))]
+    [NotifyPropertyChangedFor(nameof(CardOpacity))]
+    private ClipSegment? _root;
+
+    /// <summary>목록에서 부모 파일 바로 아래 하위 구간으로 표시할지 여부.</summary>
+    public bool IsChild => Root is not null;
+
+    /// <summary>하위 항목이면 들여쓰기, 아니면 없음(목록 카드 표시용).</summary>
+    public Microsoft.UI.Xaml.Thickness CardIndent => IsChild ? new Microsoft.UI.Xaml.Thickness(20, 0, 0, 0) : default;
+
+    /// <summary>하위 항목/파일 누락 시 살짝 옅게 표시(둘 다 적용되면 곱해짐).</summary>
+    public double CardOpacity => MissingOpacity * (IsChild ? 0.8 : 1.0);
+
+    /// <summary>출력 설정 창의 "포함할 항목" 체크 여부(목록 다중선택용 IsSelected와는 별개). 창을 열 때마다 초기화됨.</summary>
+    [ObservableProperty] private bool _isPicked;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RangeText))]
     private TimeSpan _start;
@@ -72,10 +92,16 @@ public sealed partial class ClipSegment : ObservableObject
 
     public string FileName => Path.GetFileName(FilePath);
 
-    public string RangeText =>
-        $"{Start:hh\\:mm\\:ss\\.ff} ~ {End:hh\\:mm\\:ss\\.ff}";
+    /// <summary>목록 카드처럼 좁은 폭에서도 잘리지 않도록, 1시간 미만이면 시(hh) 표시를 생략.</summary>
+    public string RangeText => $"{FormatCompact(Start)} ~ {FormatCompact(End)}";
+
+    private static string FormatCompact(TimeSpan t) =>
+        t.Hours > 0 ? t.ToString(@"hh\:mm\:ss\.ff") : t.ToString(@"mm\:ss\.ff");
 
     public string DurationText => Duration.ToString(@"mm\:ss");
+
+    /// <summary>출력 설정 창의 "포함할 항목" 체크박스 라벨 — 루트는 파일명, 하위 항목은 그 구간.</summary>
+    public string PickLabel => IsChild ? RangeText : FileName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ThumbnailFallbackVisibility))]

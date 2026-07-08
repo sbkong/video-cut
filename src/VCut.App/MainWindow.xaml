@@ -138,8 +138,8 @@
                             </ListView.ItemContainerStyle>
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ClipSegment">
-                                    <Grid>
-                                        <Border Style="{StaticResource SegmentCardStyle}" Opacity="{x:Bind MissingOpacity}"
+                                    <Grid Margin="{x:Bind CardIndent, Mode=OneWay}">
+                                        <Border Style="{StaticResource SegmentCardStyle}" Opacity="{x:Bind CardOpacity, Mode=OneWay}"
                                                 PointerEntered="OnCardPointerEntered"
                                                 PointerExited="OnCardPointerExited">
                                             <Border.BackgroundTransition>
@@ -166,7 +166,7 @@
                                                     <TextBlock Text="{x:Bind FileName}" Foreground="{StaticResource BcTextBrush}"
                                                                FontSize="13" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{x:Bind RangeText, Mode=OneWay}" Foreground="{StaticResource BcTextSecondaryBrush}"
-                                                               FontSize="11.5" Visibility="{x:Bind ExistsVisibility}" />
+                                                               FontSize="11.5" TextTrimming="CharacterEllipsis" Visibility="{x:Bind ExistsVisibility}" />
                                                     <TextBlock Text="{x:Bind MissingText}" Foreground="{StaticResource BcTextSecondaryBrush}"
                                                                FontSize="11.5" Visibility="{x:Bind MissingVisibility}" />
                                                 </StackPanel>
@@ -263,6 +263,21 @@
                                 <FontIcon Glyph="&#xE71A;" FontSize="13" />
                             </Button>
 
+                            <!-- 구분선 -->
+                            <Border x:Name="AddRangeDivider" Width="1" Height="18" Background="{StaticResource BcDividerBrush}"
+                                    VerticalAlignment="Center" Margin="2,0" Visibility="Collapsed" />
+
+                            <!-- 자르기 화면 전용: 현재 시작~끝을 같은 파일의 하위 구간으로 목록에 추가 -->
+                            <Button x:Name="BtnAddRange" MinWidth="0" MinHeight="0" Height="28" Padding="8,0"
+                                    Command="{x:Bind VM.AddCurrentRangeCommand}"
+                                    ToolTipService.ToolTip="현재 시작~끝을 하위 구간으로 목록에 추가"
+                                    Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <FontIcon Glyph="&#xE710;" FontSize="11" />
+                                    <TextBlock Text="구간 추가" FontSize="11" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
                         </StackPanel>
 
 
@@ -271,8 +286,6 @@
                     <!-- 옵션(화면별) + 시작/취소 (모든 화면 공용) -->
                     <Grid Grid.Row="3" Margin="0,8,0,0" ColumnDefinitions="*,Auto">
                         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <CheckBox x:Name="MergeCheckbox" Content="합치기" IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}"
-                                      Foreground="{StaticResource BcTextBrush}" MinWidth="0" Visibility="Collapsed" />
                             <StackPanel x:Name="SplitOptions" Orientation="Horizontal" Spacing="8"
                                         VerticalAlignment="Center" Visibility="Collapsed">
                                 <RadioButton x:Name="RbSplitCount" Content="개수" GroupName="sp" IsChecked="{x:Bind VM.SplitByCount, Mode=TwoWay}" MinWidth="0" />

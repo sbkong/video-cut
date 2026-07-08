@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:VCut.App"
+    xmlns:vm="using:VCut.App.ViewModels"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -43,9 +44,11 @@
                     <Slider x:Name="SldQuality" Header="품질 (낮을수록 용량↓)"
                             Minimum="10" Maximum="100"
                             Value="{x:Bind VM.Quality, Mode=TwoWay}"/>
-                    <Slider x:Name="SldSpeed" Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)"
-                            Minimum="0.1" Maximum="16" StepFrequency="0.1"
-                            Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}"/>
+                    <NumberBox x:Name="SldSpeed" Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)"
+                               Minimum="0.25" Maximum="32" SmallChange="0.01" LargeChange="1"
+                               SpinButtonPlacementMode="Compact" AcceptsExpression="False"
+                               HorizontalAlignment="Stretch"
+                               Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}"/>
                 </StackPanel>
 
                 <!-- 저장 폴더 -->
@@ -60,12 +63,33 @@
                     </Grid>
                 </StackPanel>
 
+                <!-- 포함할 항목 -->
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="TxtItemsHeader" Text="포함할 항목" FontWeight="SemiBold"
+                               Foreground="{StaticResource BcTextBrush}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <RadioButton x:Name="RbPickInclude" Content="포함" GroupName="pickmode" IsChecked="True"/>
+                        <RadioButton x:Name="RbPickRemove" Content="제거" GroupName="pickmode"
+                                     IsChecked="{x:Bind VM.RemoveSelectedEnabled, Mode=TwoWay}"/>
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{x:Bind VM.Segments}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ClipSegment">
+                                <CheckBox Margin="{x:Bind CardIndent, Mode=OneWay}"
+                                          IsChecked="{x:Bind IsPicked, Mode=TwoWay}"
+                                          Content="{x:Bind PickLabel, Mode=OneWay}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
                 <!-- 옵션 -->
                 <StackPanel Spacing="6">
                     <TextBlock x:Name="TxtOptionsHeader" Text="옵션" FontWeight="SemiBold"
                                Foreground="{StaticResource BcTextBrush}"/>
-                    <CheckBox x:Name="CbMerge" Content="합치기"
-                              IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}"/>
+                    <CheckBox x:Name="CbMerge" Content="하나의 영상으로 합치기"
+                              IsChecked="{x:Bind VM.MergeEnabled, Mode=TwoWay}"
+                              IsEnabled="{x:Bind VM.CanEditMerge, Mode=OneWay}"/>
                     <CheckBox x:Name="CbSavePlayback"
                               Content="재생 시간 정보를 텍스트(txt) 파일로 저장하기"
                               IsChecked="{x:Bind VM.WritePlaybackInfo, Mode=TwoWay}"/>

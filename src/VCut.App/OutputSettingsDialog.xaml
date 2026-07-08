@@ -24,7 +24,7 @@
                 <ComboBoxItem Content="MP4" /><ComboBoxItem Content="MKV" /><ComboBoxItem Content="WebM (VP9)" /><ComboBoxItem Content="AVI" />
             </ComboBox>
             <Slider x:Name="SldQuality" Header="품질 (낮을수록 용량↓)" Minimum="10" Maximum="100" Value="{x:Bind VM.Quality, Mode=TwoWay}" />
-            <Slider x:Name="SldSpeed" Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)" Minimum="0.1" Maximum="16" StepFrequency="0.1" Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}" />
+            <NumberBox x:Name="SldSpeed" Header="재생 속도 (1.0=원본, 4.01↑ 오디오 자동 제거)" Minimum="0.25" Maximum="32" SmallChange="0.1" LargeChange="1" SpinButtonPlacementMode="Compact" AcceptsExpression="False" HorizontalAlignment="Stretch" Value="{x:Bind VM.SpeedFactor, Mode=TwoWay}" />
         </StackPanel>
 
         <!-- 옵션 -->

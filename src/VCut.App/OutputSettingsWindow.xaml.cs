@@ -40,7 +40,13 @@ public sealed partial class OutputSettingsWindow : WindowBase
             FontService.ApplyToRoot(root, s);
         }
 
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(480, 530));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(480, 640));
+
+        // 창을 열 때마다 "포함 모드"로 초기화. 메인 목록에서 선택(IsSelected)해둔 항목이 있으면
+        // 그것만 기본으로 체크, 없으면(아무것도 선택 안 했으면) 전체를 기본으로 체크.
+        bool anySelected = vm.Segments.Any(s => s.IsSelected);
+        foreach (var seg in vm.Segments) seg.IsPicked = anySelected ? seg.IsSelected : true;
+        vm.RemoveSelectedEnabled = false;
 
         Closed += (_, _) => _tcs.TrySetResult(false);
     }
@@ -57,6 +63,9 @@ public sealed partial class OutputSettingsWindow : WindowBase
         TxtFolderHeader.Text    = Loc.Get("out.save_folder");
         FolderBox.PlaceholderText = Loc.Get("out.folder_ph");
         BtnBrowseFolder.Content = Loc.Get("files.browse");
+        TxtItemsHeader.Text     = Loc.Get("out.items_header");
+        RbPickInclude.Content   = Loc.Get("out.pick_include");
+        RbPickRemove.Content    = Loc.Get("out.pick_remove");
         TxtOptionsHeader.Text   = Loc.Get("out.options");
         CbMerge.Content         = Loc.Get("out.merge");
         CbSavePlayback.Content  = Loc.Get("out.save_playback");
