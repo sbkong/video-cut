@@ -366,7 +366,7 @@ public sealed class VideoEditor
     /// join=false면 항목별 파일로 내보냄. 단일/다중 파일, 자르기/합치기/구간제거를 모두 포괄.
     /// </summary>
     public async Task<EditResult> ComposeAsync(
-        IReadOnlyList<(string File, MediaRange Range)> clips,
+        IReadOnlyList<(string File, MediaRange Range, double Speed)> clips,
         bool join,
         OutputMode mode,
         ConversionSettings settings,
@@ -390,14 +390,14 @@ public sealed class VideoEditor
                 double done = 0;
                 for (int i = 0; i < clips.Count; i++)
                 {
-                    var (file, range) = clips[i];
+                    var (file, range, speed) = clips[i];
                     var outPath = clips.Count == 1
                         ? OutputNaming.Derive(file, "cut", ext, outputDir)
                         : OutputNaming.DeriveIndexed(file, "cut", i + 1, clips.Count, ext, outputDir);
                     double span = range.Duration.TotalSeconds / Math.Max(grandTotal.TotalSeconds, 0.001);
                     var scaler = new ProgressScaler(progress, done, span, grandTotal, done * grandTotal.TotalSeconds);
                     done += span;
-                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, settings, outPath);
+                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, ClipSettings(settings, speed), outPath);
                     await _runner.RunAsync(args, range.Duration, scaler, ct).ConfigureAwait(false);
                     outputs.Add(outPath);
                 }
@@ -414,12 +414,12 @@ public sealed class VideoEditor
                 double done = 0;
                 for (int i = 0; i < clips.Count; i++)
                 {
-                    var (file, range) = clips[i];
+                    var (file, range, speed) = clips[i];
                     var seg = Path.Combine(work, $"seg_{i:D4}{ext}");
                     double span = (range.Duration.TotalSeconds / Math.Max(grandTotal.TotalSeconds, 0.001)) * 0.85;
                     var scaler = new ProgressScaler(progress, done, span);
                     done += span;
-                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, settings, seg);
+                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, ClipSettings(settings, speed), seg);
                     await _runner.RunAsync(args, range.Duration, scaler, ct).ConfigureAwait(false);
                     segments.Add(seg);
                 }
@@ -441,6 +441,16 @@ public sealed class VideoEditor
         }
         catch (OperationCanceledException) { return EditResult.Fail("작업이 취소되었습니다.", elapsed: sw.Elapsed); }
         catch (FFmpegException ex) { return EditResult.Fail(ex.Message, ex.StdErr, sw.Elapsed); }
+    }
+
+    /// <summary>클립별 배속을 반영한 설정 복제. 4.01배속 이상이면 오디오 자동 제거.</summary>
+    private static ConversionSettings ClipSettings(ConversionSettings settings, double speed)
+    {
+        if (Math.Abs(speed - settings.Speed) < 0.001) return settings;
+        var clone = settings.Clone();
+        clone.Speed = speed;
+        if (speed >= ConversionSettings.AudioDropSpeedThreshold) clone.RemoveAudio = true;
+        return clone;
     }
 
     // ════════════════════════════ 5. mp3 추출 ════════════════════════════

@@ -25,6 +25,17 @@ public enum OpenFolderMode
     NeverOpen,
 }
 
+/// <summary>구간 목록에서 하위 구간이 있는 파일을 삭제할 때의 동작.</summary>
+public enum ChildRangeDeleteMode
+{
+    /// <summary>매번 물어보기.</summary>
+    AlwaysAsk,
+    /// <summary>하위 구간도 항상 같이 삭제.</summary>
+    AlwaysDelete,
+    /// <summary>하위 구간은 항상 남김(부모만 삭제, 하위는 최상위로 승격).</summary>
+    KeepChildren,
+}
+
 /// <summary>앱 기본 폰트 선택.</summary>
 public enum FontChoice
 {
@@ -48,6 +59,8 @@ public sealed class AppSettings
     public bool ShowProjectSaveMessage { get; set; } = true;
     /// <summary>[연결] 자르기 등 일반 작업 완료 후 폴더 열기 동작(매번 묻기/항상 열기/열지 않기).</summary>
     public OpenFolderMode OutputOpenFolderMode { get; set; } = OpenFolderMode.AlwaysAsk;
+    /// <summary>[연결] 하위 구간이 있는 파일을 삭제할 때의 동작(매번 묻기/항상 같이 삭제/항상 남김).</summary>
+    public ChildRangeDeleteMode ChildRangeDeleteMode { get; set; } = ChildRangeDeleteMode.AlwaysAsk;
     /// <summary>[연결] 출력설정 로그(.log) 생성.</summary>
     public bool CreateLogFile { get; set; }
     /// <summary>[연결] MP4 MOOV를 앞부분에 저장(faststart).</summary>

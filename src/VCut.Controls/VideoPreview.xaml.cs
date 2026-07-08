@@ -1,11 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Dispatching;
 using Windows.Foundation;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.UI;
+using VirtualKey = Windows.System.VirtualKey;
 
 namespace VCut.Controls;
 
@@ -138,6 +140,49 @@ public sealed partial class VideoPreview : UserControl
 
         PlayerTransform.ScaleX = (FlipH ? -1 : 1) * scale;
         PlayerTransform.ScaleY = (FlipV ? -1 : 1) * scale;
+    }
+
+    public double Speed
+    {
+        get => (double)GetValue(SpeedProperty);
+        set => SetValue(SpeedProperty, value);
+    }
+    public static readonly DependencyProperty SpeedProperty =
+        DependencyProperty.Register(nameof(Speed), typeof(double), typeof(VideoPreview),
+            new PropertyMetadata(1.0));
+
+    private const double SpeedMin = 0.25;
+    private const double SpeedMax = 32;
+
+    private string FormatSpeed(double v) => v.ToString("0.00");
+
+    private void OnSpeedTextLostFocus(object sender, RoutedEventArgs e) => CommitSpeedText();
+
+    private void OnSpeedTextKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Enter) { CommitSpeedText(); e.Handled = true; }
+        else if (e.Key == VirtualKey.Up) { AdjustSpeed(0.01); e.Handled = true; }
+        else if (e.Key == VirtualKey.Down) { AdjustSpeed(-0.01); e.Handled = true; }
+    }
+
+    private void OnSpeedTextWheel(object sender, PointerRoutedEventArgs e)
+    {
+        var delta = e.GetCurrentPoint(SpeedBox).Properties.MouseWheelDelta > 0 ? 0.01 : -0.01;
+        AdjustSpeed(delta);
+        e.Handled = true;
+    }
+
+    private void AdjustSpeed(double delta)
+    {
+        Speed = Math.Round(Math.Clamp(Speed + delta, SpeedMin, SpeedMax), 2);
+        SpeedBox.Text = FormatSpeed(Speed);
+    }
+
+    private void CommitSpeedText()
+    {
+        if (double.TryParse(SpeedBox.Text, out var v))
+            Speed = Math.Round(Math.Clamp(v, SpeedMin, SpeedMax), 2);
+        SpeedBox.Text = FormatSpeed(Speed);
     }
 
     public TimeSpan Duration

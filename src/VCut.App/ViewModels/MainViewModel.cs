@@ -149,8 +149,18 @@ public sealed partial class MainViewModel : ObservableObject
     public string TotalDurationText =>
         TimeSpan.FromSeconds(Segments.Sum(s => (s.End - s.Start).TotalSeconds)).ToString(@"hh\:mm\:ss\.ff");
 
-    /// <summary>여러 구간을 하나로 합칠지(합치기 체크박스).</summary>
+    /// <summary>여러 구간을 하나로 합칠지("하나의 영상으로 합치기" 체크박스, 출력 설정 창).</summary>
     [ObservableProperty] private bool _mergeEnabled;
+
+    /// <summary>출력 설정 창의 "포함할 항목" 모드 — true면 체크된 구간을 "제거"(보집합 유지), false면 "포함"(합치기 체크박스에 따름).
+    /// 제거 모드는 항상 하나로 합쳐지므로 진입 시 합치기를 강제로 체크한다.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditMerge))]
+    private bool _removeSelectedEnabled;
+    partial void OnRemoveSelectedEnabledChanged(bool value) { if (value) MergeEnabled = true; }
+
+    /// <summary>"제거" 모드에서는 항상 합쳐지므로 "하나의 영상으로 합치기" 체크박스를 잠근다.</summary>
+    public bool CanEditMerge => !RemoveSelectedEnabled;
 
     private bool _syncingSegment;
 
@@ -202,8 +212,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ──────────────── 배속 ────────────────
 
-    /// <summary>재생 속도 배율(1.0=원본). 변환 모드 출력 설정에서 조정.</summary>
+    /// <summary>전역 재생 속도 배율(1.0=원본). "포함할 항목" 목록에서 개별 배속을 지정하지 않은
+    /// 구간(SpeedIsCustom=false)에는 이 값이 그대로 적용됨.</summary>
     [ObservableProperty] private double _speedFactor = 1.0;
+    partial void OnSpeedFactorChanged(double value)
+    {
+        foreach (var s in Segments.Where(s => !s.SpeedIsCustom)) s.Speed = value;
+    }
 
     // ──────────────── 변환 ────────────────
 
@@ -476,6 +491,7 @@ public sealed partial class MainViewModel : ObservableObject
                     {
                         Start = TimeSpan.Zero,
                         End = info.Duration,
+                        Speed = SpeedFactor,
                     };
                     Segments.Add(seg);
                     added.Add(seg);
@@ -521,16 +537,50 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void RemoveSelectedClip()
+    private async Task RemoveSelectedClipAsync()
     {
         var toRemove = Segments.Where(s => s.IsSelected).ToList();
         if (toRemove.Count == 0) return;
+
+        // 하위 구간이 있는 루트가 선택돼 있으면(하위는 선택 안 됐어도) 설정/확인에 따라 같이 지울지 결정.
+        var rootsWithOrphans = toRemove.Where(s => !s.IsChild)
+            .Select(root => (root, orphans: Segments.Where(c => c.Root == root && !toRemove.Contains(c)).ToList()))
+            .Where(g => g.orphans.Count > 0)
+            .ToList();
+
+        if (rootsWithOrphans.Count > 0)
+        {
+            var s = SettingsStore.Current;
+            bool deleteChildren;
+            if (s.ChildRangeDeleteMode == ChildRangeDeleteMode.AlwaysDelete) deleteChildren = true;
+            else if (s.ChildRangeDeleteMode == ChildRangeDeleteMode.KeepChildren) deleteChildren = false;
+            else if (ShowConfirm is not null)
+            {
+                var (confirmed, dontAskAgain) = await ShowConfirm(
+                    Loc.Get("vm.delete_children_title"), Loc.Get("vm.delete_children_confirm"));
+                deleteChildren = confirmed;
+                if (dontAskAgain)
+                {
+                    s.ChildRangeDeleteMode = confirmed ? ChildRangeDeleteMode.AlwaysDelete : ChildRangeDeleteMode.KeepChildren;
+                    SettingsStore.Save(s);
+                }
+            }
+            else deleteChildren = false;
+
+            if (deleteChildren)
+                foreach (var (_, orphans) in rootsWithOrphans) toRemove.AddRange(orphans);
+        }
+
         int firstIdx = Segments.IndexOf(toRemove[0]);
         foreach (var seg in toRemove)
         {
             seg.RangeChanged -= OnSegmentRangeChanged;
             Segments.Remove(seg);
         }
+        // 부모가 삭제됐는데 남은 하위는 최상위로 승격(고아 방지).
+        foreach (var seg in Segments.Where(s => s.Root is not null && !Segments.Contains(s.Root)))
+            seg.Root = null;
+
         Renumber();
         SelectedSegment = Segments.Count > 0 ? Segments[Math.Min(firstIdx, Segments.Count - 1)] : null;
         OnPropertyChanged(nameof(HasSegments)); OnPropertyChanged(nameof(HasNoSegments));
@@ -600,6 +650,7 @@ public sealed partial class MainViewModel : ObservableObject
             TrimStart = TimeSpan.Zero;
             TrimEnd = TimeSpan.Zero;
             ClearPreview?.Invoke();
+            AddCurrentRangeCommand.NotifyCanExecuteChanged();
             return;
         }
         if (value.IsMissing)
@@ -664,6 +715,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (SelectedSegment is not null) SelectedSegment.Start = value;
         // TotalDurationText는 OnSegmentRangeChanged에서 Start 변경 시 이미 통지됨 — 중복 제거
         else OnPropertyChanged(nameof(TotalDurationText));
+        AddCurrentRangeCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnTrimEndChanged(TimeSpan value)
@@ -671,6 +723,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (_syncingSegment) return;
         if (SelectedSegment is not null) SelectedSegment.End = value;
         else OnPropertyChanged(nameof(TotalDurationText));
+        AddCurrentRangeCommand.NotifyCanExecuteChanged();
     }
 
     private void OnSegmentRangeChanged(ClipSegment _)
@@ -679,18 +732,99 @@ public sealed partial class MainViewModel : ObservableObject
         IsModified = true;
     }
 
+    // ════════════════ 구간 추가(같은 파일의 하위 구간) ════════════════
+
+    private bool CanAddCurrentRange() =>
+        SelectedSegment is { IsMissing: false } && TrimEnd > TrimStart;
+
+    /// <summary>'구간 추가' — 현재 선택 항목을 복제해 같은 파일 그룹의 마지막 뒤에 하위 항목으로 삽입.
+    /// 복제본을 선택 상태로 만들어, 이후 타임라인 드래그는 원본이 아니라 이 복제본만 바꾼다.</summary>
+    [RelayCommand(CanExecute = nameof(CanAddCurrentRange))]
+    private void AddCurrentRange()
+    {
+        var src = SelectedSegment!;
+        var root = src.Root ?? src;
+        var copy = new ClipSegment(src.FilePath, src.Duration, src.FrameRate)
+        {
+            Start = TrimStart,
+            End = TrimEnd,
+            Root = root,
+            Speed = src.Speed,
+            SpeedIsCustom = src.SpeedIsCustom,
+        };
+        copy.RangeChanged += OnSegmentRangeChanged;
+        Segments.Insert(LastIndexOfGroup(root) + 1, copy);
+        _ = copy.LoadThumbnailAsync();
+        Renumber();
+        SelectedSegment = copy;
+    }
+
+    /// <summary>루트 항목 바로 다음부터 이어지는 같은 그룹(하위 항목들)의 마지막 인덱스.</summary>
+    private int LastIndexOfGroup(ClipSegment root)
+    {
+        int idx = Segments.IndexOf(root);
+        while (idx + 1 < Segments.Count && Segments[idx + 1].Root == root) idx++;
+        return idx;
+    }
+
+    /// <summary>드래그로 재정렬한 뒤, 루트+하위 그룹의 연속성을 복원(하위는 항상 자신의 루트 바로 뒤로).</summary>
+    internal void RegroupAfterDrag()
+    {
+        var current = Segments.ToList();
+        var target = new List<ClipSegment>();
+        var placed = new HashSet<ClipSegment>();
+        foreach (var seg in current)
+        {
+            if (placed.Contains(seg)) continue;
+            if (seg.IsChild) continue; // 루트를 만날 때 같이 배치
+            target.Add(seg);
+            placed.Add(seg);
+            foreach (var child in current.Where(c => c.Root == seg))
+            {
+                target.Add(child);
+                placed.Add(child);
+            }
+        }
+        // 루트가 삭제됐는데 남아있는 하위(이론상 없어야 하지만 방어적으로) 그대로 뒤에 붙임.
+        foreach (var seg in current) if (!placed.Contains(seg)) target.Add(seg);
+
+        for (int i = 0; i < target.Count; i++)
+        {
+            int from = Segments.IndexOf(target[i]);
+            if (from != i) Segments.Move(from, i);
+        }
+    }
+
     // ════════════════ 시작(구간 목록 실행) ════════════════
 
     private bool CanCompose() => EngineReady && !IsBusy && Segments.Count > 0;
 
-    /// <summary>하단 [시작] — 구간 목록을 (합치기 여부에 따라) 실행.</summary>
+    /// <summary>하단 [시작] — 출력 설정 창의 "포함할 항목"에서 체크(IsPicked)된 구간을,
+    /// "포함" 모드면 합치기 체크박스에 따라, "제거" 모드면 같은 파일 안에서 제거(보집합 유지)해서 실행.</summary>
     [RelayCommand(CanExecute = nameof(CanCompose))]
     private Task RunComposeAsync() => RunAsync(async (editor, settings, progress, ct) =>
     {
         settings.ExtractAudioOnly = ExtractAudioOnly;
         settings.RemoveAudio = RemoveAudio;
-        var clips = Segments.Select(s =>
-            (s.FilePath, new MediaRange(s.Start, s.End <= s.Start ? s.Duration : s.End))).ToList();
+
+        var picked = Segments.Where(s => s.IsPicked).ToList();
+        if (picked.Count == 0)
+            return EditResult.Fail(Loc.Get("vm.no_pick_selection"));
+
+        if (RemoveSelectedEnabled)
+        {
+            var groups = picked.Select(s => s.Root ?? s).Distinct().Count();
+            if (groups > 1)
+                return EditResult.Fail(Loc.Get("vm.mixed_file_pick"));
+
+            var file = (picked[0].Root ?? picked[0]).FilePath;
+            var ranges = picked.OrderBy(s => s.Start)
+                .Select(s => new MediaRange(s.Start, s.End <= s.Start ? s.Duration : s.End)).ToList();
+            return await editor.RemoveSegmentsAsync(file, ranges, CurrentMode, settings, OutputDir, progress, ct);
+        }
+
+        var clips = picked.Select(s =>
+            (s.FilePath, new MediaRange(s.Start, s.End <= s.Start ? s.Duration : s.End), s.Speed)).ToList();
         return await editor.ComposeAsync(clips, MergeEnabled, CurrentMode, settings, OutputDir, progress, ct);
     });
 
@@ -1092,6 +1226,7 @@ public sealed partial class MainViewModel : ObservableObject
         RunMuteCommand.NotifyCanExecuteChanged();
         RunPrepareCommand.NotifyCanExecuteChanged();
         RunComposeCommand.NotifyCanExecuteChanged();
+        AddCurrentRangeCommand.NotifyCanExecuteChanged();
     }
 
     private async Task Notify(string title, string msg)

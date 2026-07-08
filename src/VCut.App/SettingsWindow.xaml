@@ -191,6 +191,20 @@
                                      Content="열지 않기"
                                      GroupName="outputopenmode"
                                      Foreground="{StaticResource BcTextBrush}"/>
+                        <TextBlock x:Name="TxtChildDeleteHeader" Text="하위 구간이 있는 파일 삭제 시" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
+                        <RadioButton x:Name="ChildDeleteAskRadio"
+                                     Content="매번 묻기"
+                                     GroupName="childdeletemode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="ChildDeleteAlwaysRadio"
+                                     Content="하위 구간도 항상 같이 삭제"
+                                     GroupName="childdeletemode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
+                        <RadioButton x:Name="ChildDeleteKeepRadio"
+                                     Content="하위 구간은 항상 남김"
+                                     GroupName="childdeletemode"
+                                     Foreground="{StaticResource BcTextBrush}"/>
                         <TextBlock x:Name="TxtCaptureFolderHeader" Text="캡처 저장 폴더" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextBrush}" Margin="0,8,0,0"/>
                         <RadioButton x:Name="CaptureSameFolderRadio"

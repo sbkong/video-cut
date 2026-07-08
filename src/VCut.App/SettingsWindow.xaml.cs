@@ -157,6 +157,9 @@ public sealed partial class SettingsWindow : WindowBase
         OutputOpenAskRadio.IsChecked    = S.OutputOpenFolderMode == OpenFolderMode.AlwaysAsk;
         OutputOpenAlwaysRadio.IsChecked = S.OutputOpenFolderMode == OpenFolderMode.AlwaysOpen;
         OutputOpenNeverRadio.IsChecked  = S.OutputOpenFolderMode == OpenFolderMode.NeverOpen;
+        ChildDeleteAskRadio.IsChecked    = S.ChildRangeDeleteMode == ChildRangeDeleteMode.AlwaysAsk;
+        ChildDeleteAlwaysRadio.IsChecked = S.ChildRangeDeleteMode == ChildRangeDeleteMode.AlwaysDelete;
+        ChildDeleteKeepRadio.IsChecked   = S.ChildRangeDeleteMode == ChildRangeDeleteMode.KeepChildren;
         TempFolderBox.Text = S.TempFolder;
         LanguageCombo.SelectedIndex = S.Language switch { "en" => 1, "ja" => 2, "zh" => 3, _ => 0 };
         HwCombo.SelectedIndex = (int)S.DefaultHardwareAccel;
@@ -311,6 +314,11 @@ public sealed partial class SettingsWindow : WindowBase
             : OutputOpenNeverRadio.IsChecked == true
                 ? OpenFolderMode.NeverOpen
                 : OpenFolderMode.AlwaysAsk;
+        S.ChildRangeDeleteMode = ChildDeleteAlwaysRadio.IsChecked == true
+            ? ChildRangeDeleteMode.AlwaysDelete
+            : ChildDeleteKeepRadio.IsChecked == true
+                ? ChildRangeDeleteMode.KeepChildren
+                : ChildRangeDeleteMode.AlwaysAsk;
         S.TempFolder = TempFolderBox.Text.Trim();
         S.Language = LanguageCombo.SelectedIndex switch { 1 => "en", 2 => "ja", 3 => "zh", _ => "ko" };
         S.DefaultHardwareAccel = (HardwareAccel)Math.Max(0, HwCombo.SelectedIndex);
@@ -468,6 +476,7 @@ public sealed partial class SettingsWindow : WindowBase
                 S.CaptureFolder = def.CaptureFolder;
                 S.CaptureOpenFolderMode = def.CaptureOpenFolderMode;
                 S.OutputOpenFolderMode = def.OutputOpenFolderMode;
+                S.ChildRangeDeleteMode = def.ChildRangeDeleteMode;
                 S.TempFolder = def.TempFolder;
                 break;
             case 3: // 언어

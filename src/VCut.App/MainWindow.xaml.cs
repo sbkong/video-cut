@@ -157,8 +157,7 @@ public sealed partial class MainWindow : Window
         ToolTipService.SetToolTip(BtnRangePlay, Loc.Get("btn.play_range"));
         ToolTipService.SetToolTip(BtnRangeStop, Loc.Get("btn.stop_range"));
 
-        // Split / merge options
-        MergeCheckbox.Content = Loc.Get("cb.merge");
+        // Split options
         RbSplitCount.Content  = Loc.Get("rb.split_count");
         RbSplitTime.Content   = Loc.Get("rb.split_time");
         BtnSplitRun.Content   = Loc.Get("btn.split_run");
@@ -282,8 +281,9 @@ public sealed partial class MainWindow : Window
         EditGrid.Visibility = home ? Visibility.Collapsed : Visibility.Visible;
 
         // 모드별 옵션 표시.
-        MergeCheckbox.Visibility = screen == "trim" ? Visibility.Visible : Visibility.Collapsed;
         SplitOptions.Visibility = screen == "split" ? Visibility.Visible : Visibility.Collapsed;
+        AddRangeDivider.Visibility = screen == "trim" ? Visibility.Visible : Visibility.Collapsed;
+        BtnAddRange.Visibility = screen == "trim" ? Visibility.Visible : Visibility.Collapsed;
         ListTitle.Text = screen switch
         {
             "split" => Loc.Get("panel.split_list"),
@@ -627,6 +627,7 @@ public sealed partial class MainWindow : Window
         var saved = _preSelectionDrag;
         _preSelectionDrag = null;
 
+        VM.RegroupAfterDrag();
         VM.Renumber();
 
         if (saved is { Count: > 1 })

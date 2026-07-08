@@ -87,9 +87,16 @@
                         </Button>
                     </StackPanel>
 
-                    <!-- 볼륨 (우) -->
+                    <!-- 배속 + 볼륨 (우) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal"
                                 VerticalAlignment="Center" Spacing="2" Margin="0,0,2,0">
+                        <TextBox x:Name="SpeedBox" Width="48"
+                                 TextAlignment="Right" InputScope="Number"
+                                 VerticalAlignment="Center" Margin="0,0,6,0"
+                                 ToolTipService.ToolTip="재생 속도 (휠/↑↓로 조절)"
+                                 Text="{x:Bind FormatSpeed(Speed), Mode=OneWay}"
+                                 LostFocus="OnSpeedTextLostFocus" PreviewKeyDown="OnSpeedTextKeyDown"
+                                 PointerWheelChanged="OnSpeedTextWheel" />
                         <Button x:Name="MuteButton" Click="OnMuteToggle"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 Padding="4" ToolTipService.ToolTip="음소거 토글">
