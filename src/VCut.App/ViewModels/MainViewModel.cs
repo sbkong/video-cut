@@ -149,7 +149,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string TotalDurationText =>
         TimeSpan.FromSeconds(Segments.Sum(s => (s.End - s.Start).TotalSeconds)).ToString(@"hh\:mm\:ss\.ff");
 
-    /// <summary>여러 구간을 하나로 합칠지("하나의 영상으로 합치기" 체크박스, 출력 설정 창).</summary>
+    /// <summary>여러 구간을 하나로 합칠지(합치기 체크박스).</summary>
     [ObservableProperty] private bool _mergeEnabled;
 
     /// <summary>출력 설정 창의 "포함할 항목" 모드 — true면 체크된 구간을 "제거"(보집합 유지), false면 "포함"(합치기 체크박스에 따름).
