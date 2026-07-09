@@ -67,6 +67,8 @@ public sealed partial class MainWindow : Window
 
         SetupMinWindowSize();
 
+        Closed += (_, _) => _modalChild?.Close();
+
         if (AppWindow is { } aw)
         {
             RestoreWindowState(aw);
@@ -380,6 +382,7 @@ public sealed partial class MainWindow : Window
             return;
         }
         var win = new OutputSettingsWindow(VM);
+        OpenModalChild(win);
         win.Activate();
         if (await win.WaitAsync() && VM.RunComposeCommand.CanExecute(null))
             VM.RunComposeCommand.Execute(null);
@@ -395,8 +398,24 @@ public sealed partial class MainWindow : Window
     private void OpenSettings()
     {
         var win = new SettingsWindow();
+        OpenModalChild(win);
         win.Closed += (_, _) => { if (win.Saved) SetupShortcuts(); };
         win.Activate();
+    }
+
+    /// <summary>보조 창(시작/설정)이 열려 있는 동안 메인 화면 버튼 클릭을 막고,
+    /// 메인 창이 먼저 닫히면 같이 닫히도록 함(Closed 핸들러에서 처리).</summary>
+    private WindowBase? _modalChild;
+
+    private void OpenModalChild(WindowBase win)
+    {
+        _modalChild = win;
+        Root.IsHitTestVisible = false;
+        win.Closed += (_, _) =>
+        {
+            _modalChild = null;
+            Root.IsHitTestVisible = true;
+        };
     }
     private void OnExit(object sender, RoutedEventArgs e) => Application.Current.Exit();
 

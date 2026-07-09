@@ -430,11 +430,11 @@
         <Grid Grid.Row="2" Background="{StaticResource BcRailBrush}" Padding="12,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         Spacing="8" VerticalAlignment="Center">
-                <Button x:Name="BtnRestart" Content="지금 재시작" Click="OnRestartNow" Visibility="Collapsed"/>
-                <Button x:Name="BtnResetAll" Content="전체 초기화" Click="OnResetAll"/>
-                <Button x:Name="BtnReset" Content="초기화" Click="OnReset"/>
-                <Button x:Name="BtnCancelSettings" Content="취소" Click="OnCancel"/>
-                <Button x:Name="BtnSaveSettings" Content="저장" Click="OnSave" Style="{StaticResource AccentButtonStyle}"/>
+                <Button x:Name="BtnRestart" Content="지금 재시작" Click="OnRestartNow" Visibility="Collapsed" Style="{StaticResource DialogSecondaryButtonStyle}"/>
+                <Button x:Name="BtnResetAll" Content="전체 초기화" Click="OnResetAll" Style="{StaticResource DialogSecondaryButtonStyle}"/>
+                <Button x:Name="BtnReset" Content="초기화" Click="OnReset" Style="{StaticResource DialogSecondaryButtonStyle}"/>
+                <Button x:Name="BtnCancelSettings" Content="취소" Click="OnCancel" Style="{StaticResource DialogSecondaryButtonStyle}"/>
+                <Button x:Name="BtnSaveSettings" Content="저장" Click="OnSave" Style="{StaticResource DialogPrimaryButtonStyle}"/>
             </StackPanel>
         </Grid>
 

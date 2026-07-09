@@ -140,9 +140,9 @@
             <Border VerticalAlignment="Top" Height="1" Background="{StaticResource BcDividerBrush}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         Spacing="8" VerticalAlignment="Center">
-                <Button x:Name="BtnCancel" Content="취소" Click="OnCancel"/>
+                <Button x:Name="BtnCancel" Content="취소" Click="OnCancel" Style="{StaticResource DialogSecondaryButtonStyle}"/>
                 <Button x:Name="BtnStart"  Content="시작"  Click="OnStart"
-                        Style="{StaticResource AccentButtonStyle}"/>
+                        Style="{StaticResource DialogPrimaryButtonStyle}"/>
             </StackPanel>
         </Grid>
 

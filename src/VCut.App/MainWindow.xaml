@@ -297,7 +297,7 @@
                             </StackPanel>
                         </StackPanel>
                         <Grid Grid.Column="1">
-                            <Button x:Name="StartButton" Content="시작" Style="{StaticResource StartButtonStyle}" Click="OnStartClick" />
+                            <Button x:Name="StartButton" Content="시작" Style="{StaticResource PrimaryButtonStyle}" Click="OnStartClick" />
                             <Button x:Name="CancelButton" Content="취소" Style="{StaticResource CancelButtonStyle}" Command="{x:Bind VM.CancelCommand}" Visibility="Collapsed" />
                         </Grid>
                     </Grid>
