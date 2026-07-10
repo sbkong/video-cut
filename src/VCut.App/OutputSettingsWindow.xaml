@@ -12,50 +12,21 @@
     <Grid x:Name="Root" RowDefinitions="44,*,52" Background="{StaticResource BcAppBrush}">
 
         <!-- ════════ 헤더 바 ════════ -->
-        <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" Padding="16,0">
-            <TextBlock x:Name="HeaderText" Text="출력 설정" FontSize="14" FontWeight="SemiBold"
+        <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" Padding="16,0"
+              ColumnDefinitions="Auto,*,Auto">
+            <TextBlock Grid.Column="0" x:Name="HeaderText" Text="출력 설정" FontSize="14" FontWeight="SemiBold"
                        Foreground="{StaticResource BcTextBrush}" VerticalAlignment="Center"/>
+            <ToggleSwitch Grid.Column="2" x:Name="TglFastMode"
+                          IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}"
+                          OnContent="고속 모드"
+                          OffContent="변환 모드"/>
         </Grid>
 
         <!-- ════════ 콘텐츠 ════════ -->
-        <ScrollViewer Grid.Row="1" Padding="16">
+        <ScrollViewer Grid.Row="1" Padding="16"
+                      HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                      BringIntoViewOnFocusChange="False">
             <StackPanel Spacing="14">
-
-                <!-- 출력 방식 -->
-                <StackPanel Spacing="6">
-                    <TextBlock x:Name="TxtModeHeader" Text="출력 방식" FontWeight="SemiBold"
-                               Foreground="{StaticResource BcTextBrush}"/>
-                    <ToggleSwitch x:Name="TglFastMode"
-                                  IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}"
-                                  OnContent="고속 모드 (화질 저하 없는 빠른 작업)"
-                                  OffContent="변환 모드 (재인코딩)"/>
-                </StackPanel>
-
-                <!-- 변환 모드 상세 (고속 모드일 때 숨김) -->
-                <StackPanel Spacing="8" Visibility="{x:Bind VM.ConvertOptionsVisibility, Mode=OneWay}">
-                    <ComboBox x:Name="CboFormat" Header="파일 형식"
-                              SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}"
-                              HorizontalAlignment="Stretch">
-                        <ComboBoxItem Content="MP4"/>
-                        <ComboBoxItem Content="MKV"/>
-                        <ComboBoxItem Content="WebM (VP9)"/>
-                        <ComboBoxItem Content="AVI"/>
-                    </ComboBox>
-                    <Slider x:Name="SldQuality" Header="품질 (낮을수록 용량↓)"
-                            Minimum="10" Maximum="100"
-                            Value="{x:Bind VM.Quality, Mode=TwoWay}"/>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBlock x:Name="TxtSpeedLabel" Grid.Column="0" Text="재생 속도"
-                                   VerticalAlignment="Center"
-                                   Foreground="{StaticResource BcTextBrush}"
-                                   ToolTipService.ToolTip="1.0=원본, 4.01↑ 오디오 자동 제거, 휠/↑↓로 조절"/>
-                        <TextBox x:Name="SldSpeed" Grid.Column="1"
-                                 Width="90" TextAlignment="Right" InputScope="Number"
-                                 Text="{x:Bind local:SpeedFormat.Text(VM.SpeedFactor), Mode=OneWay}"
-                                 LostFocus="OnMasterSpeedLostFocus" PreviewKeyDown="OnMasterSpeedKeyDown"
-                                 PointerWheelChanged="OnMasterSpeedWheel"/>
-                    </Grid>
-                </StackPanel>
 
                 <!-- 저장 폴더 -->
                 <StackPanel Spacing="6">
@@ -69,6 +40,28 @@
                     </Grid>
                 </StackPanel>
 
+                <!-- 저장될 파일명 -->
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="TxtFileNameHeader" Text="저장될 파일명" FontWeight="SemiBold"
+                               Foreground="{StaticResource BcTextBrush}"/>
+                    <TextBox x:Name="FileNameBox"/>
+                </StackPanel>
+
+                <!-- 재생 속도 (고속 모드일 때 숨김) -->
+                <StackPanel Spacing="8" Visibility="{x:Bind VM.ConvertOptionsVisibility, Mode=OneWay}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBlock x:Name="TxtSpeedLabel" Grid.Column="0" Text="재생 속도"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource BcTextBrush}"
+                                   ToolTipService.ToolTip="1.0=원본, 4.01↑ 오디오 자동 제거, 휠/↑↓로 조절"/>
+                        <TextBox x:Name="SldSpeed" Grid.Column="1"
+                                 Width="90" TextAlignment="Right" InputScope="Number"
+                                 Text="{x:Bind local:SpeedFormat.Text(VM.SpeedFactor), Mode=OneWay}"
+                                 LostFocus="OnMasterSpeedLostFocus" PreviewKeyDown="OnMasterSpeedKeyDown"
+                                 PointerWheelChanged="OnMasterSpeedWheel"/>
+                    </Grid>
+                </StackPanel>
+
                 <!-- 포함할 항목 -->
                 <StackPanel Spacing="6">
                     <TextBlock x:Name="TxtItemsHeader" Text="포함할 항목" FontWeight="SemiBold"
@@ -78,42 +71,75 @@
                         <RadioButton x:Name="RbPickRemove" Content="제거" GroupName="pickmode"
                                      IsChecked="{x:Bind VM.RemoveSelectedEnabled, Mode=TwoWay}"/>
                     </StackPanel>
-                    <ItemsControl ItemsSource="{x:Bind VM.Segments}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="vm:ClipSegment">
-                                <Grid Margin="{x:Bind CardIndent, Mode=OneWay}"
-                                      ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                    <CheckBox Grid.Column="0"
-                                              IsChecked="{x:Bind IsPicked, Mode=TwoWay}"
-                                              Content="{x:Bind PickLabel, Mode=OneWay}"/>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
-                                                VerticalAlignment="Center">
-                                        <Button Height="32" MinWidth="60" Padding="0" FontSize="12"
-                                                HorizontalContentAlignment="Center"
-                                                Visibility="{x:Bind SpeedIsDefault, Mode=OneWay}"
-                                                Click="OnEnableRowSpeed"
-                                                ToolTipService.ToolTip="재생 속도 개별 설정"
-                                                Content="배속"/>
-                                        <Button Style="{StaticResource GlyphButtonStyle}"
-                                                Height="32" Width="32" Padding="0"
-                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                                                Visibility="{x:Bind SpeedIsCustom, Mode=OneWay}"
-                                                Click="OnResetRowSpeed"
-                                                ToolTipService.ToolTip="공통 배속으로 초기화">
-                                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
-                                        </Button>
-                                        <TextBox Height="32" Width="60"
-                                                 TextAlignment="Right" InputScope="Number"
-                                                 Visibility="{x:Bind SpeedIsCustom, Mode=OneWay}"
-                                                 ToolTipService.ToolTip="이 구간의 배속 (휠/↑↓로 조절)"
-                                                 Text="{x:Bind local:SpeedFormat.Text(Speed), Mode=OneWay}"
-                                                 LostFocus="OnRowSpeedLostFocus" PreviewKeyDown="OnRowSpeedKeyDown"
-                                                 PointerWheelChanged="OnRowSpeedWheel"/>
-                                    </StackPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        <StackPanel Spacing="0">
+
+                            <!-- 표 헤더 -->
+                            <Grid ColumnDefinitions="32,*,190,160,100" ColumnSpacing="10"
+                                  Padding="10,7" Background="{StaticResource BcPanelBrush}"
+                                  CornerRadius="6,6,0,0">
+                                <CheckBox Grid.Column="0" x:Name="CbSelectAll" Click="OnSelectAllClick"
+                                          ToolTipService.ToolTip="전체 선택/해제"/>
+                                <TextBlock Grid.Column="1" x:Name="TxtColFilename" Text="파일명" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" x:Name="TxtColVideo" Text="비디오 정보" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" x:Name="TxtColAudio" Text="오디오 정보" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" x:Name="TxtColSpeed" Text="배속" FontWeight="SemiBold" FontSize="12"
+                                           Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{x:Bind VM.Segments}"
+                                          Background="{StaticResource BcPanelDarkBrush}"
+                                          CornerRadius="0,0,6,6"
+                                          Padding="0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ClipSegment">
+                                        <Border BorderBrush="{StaticResource BcDividerBrush}" BorderThickness="0,0,0,1">
+                                        <Grid ColumnDefinitions="32,*,190,160,100" ColumnSpacing="10"
+                                              Padding="10,8">
+                                            <CheckBox Grid.Column="0" IsChecked="{x:Bind IsPicked, Mode=TwoWay}"/>
+                                            <TextBlock Grid.Column="1" Margin="{x:Bind CardIndent, Mode=OneWay}"
+                                                       Text="{x:Bind PickLabel, Mode=OneWay}"
+                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="2" Text="{x:Bind VideoInfo}"
+                                                       VerticalAlignment="Center" FontSize="12"
+                                                       Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="3" Text="{x:Bind AudioInfo}"
+                                                       VerticalAlignment="Center" FontSize="12"
+                                                       Foreground="{StaticResource BcTextSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4"
+                                                        VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <Button Height="32" MinWidth="60" Padding="0" FontSize="12"
+                                                        HorizontalContentAlignment="Center"
+                                                        Visibility="{x:Bind SpeedIsDefault, Mode=OneWay}"
+                                                        Click="OnEnableRowSpeed"
+                                                        ToolTipService.ToolTip="재생 속도 개별 설정"
+                                                        Content="배속"/>
+                                                <Button Style="{StaticResource GlyphButtonStyle}"
+                                                        Height="32" Width="32" Padding="0"
+                                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                        Visibility="{x:Bind SpeedIsCustom, Mode=OneWay}"
+                                                        Click="OnResetRowSpeed"
+                                                        ToolTipService.ToolTip="공통 배속으로 초기화">
+                                                    <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                                                </Button>
+                                                <TextBox Height="32" Width="60"
+                                                         TextAlignment="Right" InputScope="Number"
+                                                         Visibility="{x:Bind SpeedIsCustom, Mode=OneWay}"
+                                                         ToolTipService.ToolTip="이 구간의 배속 (휠/↑↓로 조절)"
+                                                         Text="{x:Bind local:SpeedFormat.Text(Speed), Mode=OneWay}"
+                                                         LostFocus="OnRowSpeedLostFocus" PreviewKeyDown="OnRowSpeedKeyDown"
+                                                         PointerWheelChanged="OnRowSpeedWheel"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                 </StackPanel>
 
                 <!-- 옵션 -->
@@ -132,6 +158,188 @@
                               IsChecked="{x:Bind VM.RemoveAudio, Mode=TwoWay}"/>
                 </StackPanel>
 
+                <!-- 변환 모드 추가 설정 (고속 모드일 때 숨김) -->
+                <StackPanel Spacing="8" Visibility="{x:Bind VM.ConvertOptionsVisibility, Mode=OneWay}">
+                    <ComboBox x:Name="CboFormat" Header="파일 형식"
+                              SelectedIndex="{x:Bind VM.ContainerIndex, Mode=TwoWay}"
+                              HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="MP4"/>
+                        <ComboBoxItem Content="MKV"/>
+                        <ComboBoxItem Content="WebM (VP9)"/>
+                        <ComboBoxItem Content="AVI"/>
+                    </ComboBox>
+                    <!-- 비디오 -->
+                    <TextBlock x:Name="TxtVideoGroupHeader" Text="비디오" FontWeight="SemiBold"
+                               Foreground="{StaticResource BcTextBrush}"/>
+                    <ComboBox x:Name="CboVideoCodec" Header="비디오 코덱" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.VideoCodecIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="H.264"/>
+                        <ComboBoxItem Content="HEVC (H.265)"/>
+                        <ComboBoxItem Content="AV1"/>
+                        <ComboBoxItem Content="VP8"/>
+                        <ComboBoxItem Content="VP9"/>
+                        <ComboBoxItem Content="Xvid"/>
+                        <ComboBoxItem Content="MPEG-4"/>
+                        <ComboBoxItem Content="Motion JPEG"/>
+                    </ComboBox>
+                    <ComboBox x:Name="CboVideoRateControl" Header="압축 방식" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.VideoRateControlIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="품질 기반 (VBR)"/>
+                        <ComboBoxItem Content="비트레이트 기반 (CBR)"/>
+                    </ComboBox>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <ComboBox Grid.Column="0" x:Name="CboVideoBitratePreset" Header="비트 레이트 (kbps)"
+                                  HorizontalAlignment="Stretch"
+                                  IsEnabled="{x:Bind VM.IsVideoBitrateEditable, Mode=OneWay}"
+                                  Visibility="{x:Bind VM.IsVideoBitratePreset, Mode=OneWay}"
+                                  SelectionChanged="OnVideoBitratePresetChanged">
+                            <ComboBoxItem Content="1000 kbps"/>
+                            <ComboBoxItem Content="2500 kbps"/>
+                            <ComboBoxItem Content="5000 kbps"/>
+                            <ComboBoxItem Content="8000 kbps"/>
+                            <ComboBoxItem Content="15000 kbps"/>
+                            <ComboBoxItem Content="25000 kbps"/>
+                            <ComboBoxItem Content="50000 kbps"/>
+                        </ComboBox>
+                        <TextBox Grid.Column="0" x:Name="TxtVideoBitrate" Header="비트 레이트 (kbps)"
+                                 TextAlignment="Right" InputScope="Number"
+                                 IsEnabled="{x:Bind VM.IsVideoBitrateEditable, Mode=OneWay}"
+                                 Visibility="{x:Bind VM.VideoBitrateIsCustom, Mode=OneWay}"
+                                 Text="{x:Bind local:NumericFormat.Text(VM.VideoBitrateKbps, 0), Mode=OneWay}"
+                                 LostFocus="OnVideoBitrateLostFocus" PreviewKeyDown="OnVideoBitrateKeyDown"
+                                 PointerWheelChanged="OnVideoBitrateWheel"/>
+                        <Button Grid.Column="1" VerticalAlignment="Bottom" Height="32" Padding="10,0"
+                                IsEnabled="{x:Bind VM.IsVideoBitrateEditable, Mode=OneWay}"
+                                Visibility="{x:Bind VM.IsVideoBitratePreset, Mode=OneWay}"
+                                Click="OnEnableVideoBitrateCustom" Content="커스텀"/>
+                        <Button Grid.Column="1" Style="{StaticResource GlyphButtonStyle}"
+                                VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
+                                Visibility="{x:Bind VM.VideoBitrateIsCustom, Mode=OneWay}"
+                                Click="OnResetVideoBitrateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
+                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                        </Button>
+                    </Grid>
+                    <ComboBox x:Name="CboSizeMode" Header="화면 크기" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.SizeModeIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="원본 유지" Visibility="{x:Bind VM.CanKeepOriginalSize, Mode=OneWay}"/>
+                        <ComboBoxItem Content="가로 맞춤"/>
+                        <ComboBoxItem Content="세로 맞춤"/>
+                        <ComboBoxItem Content="직접 지정"/>
+                    </ComboBox>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8"
+                          Visibility="{x:Bind VM.IsSizeCustom, Mode=OneWay}">
+                        <TextBox Grid.Column="0" x:Name="TxtResizeWidth" Header="가로(px)"
+                                 TextAlignment="Right" InputScope="Number"
+                                 Text="{x:Bind local:NumericFormat.Text(VM.ResizeWidth, 0), Mode=OneWay}"
+                                 LostFocus="OnResizeWidthLostFocus" PreviewKeyDown="OnResizeWidthKeyDown"
+                                 PointerWheelChanged="OnResizeWidthWheel"/>
+                        <TextBox Grid.Column="1" x:Name="TxtResizeHeight" Header="세로(px)"
+                                 TextAlignment="Right" InputScope="Number"
+                                 Text="{x:Bind local:NumericFormat.Text(VM.ResizeHeight, 0), Mode=OneWay}"
+                                 LostFocus="OnResizeHeightLostFocus" PreviewKeyDown="OnResizeHeightKeyDown"
+                                 PointerWheelChanged="OnResizeHeightWheel"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <ComboBox Grid.Column="0" x:Name="CboFrameRatePreset" Header="프레임레이트 (fps, 0=원본 유지)"
+                                  HorizontalAlignment="Stretch"
+                                  Visibility="{x:Bind VM.IsFrameRatePreset, Mode=OneWay}"
+                                  SelectionChanged="OnFrameRatePresetChanged">
+                            <ComboBoxItem Content="원본 유지"/>
+                            <ComboBoxItem Content="24 fps"/>
+                            <ComboBoxItem Content="25 fps"/>
+                            <ComboBoxItem Content="30 fps"/>
+                            <ComboBoxItem Content="48 fps"/>
+                            <ComboBoxItem Content="50 fps"/>
+                            <ComboBoxItem Content="60 fps"/>
+                            <ComboBoxItem Content="120 fps"/>
+                        </ComboBox>
+                        <TextBox Grid.Column="0" x:Name="TxtFrameRate" Header="프레임레이트 (fps)"
+                                 TextAlignment="Right" InputScope="Number"
+                                 Visibility="{x:Bind VM.FrameRateIsCustom, Mode=OneWay}"
+                                 Text="{x:Bind local:NumericFormat.Text(VM.OutputFrameRate, 3), Mode=OneWay}"
+                                 LostFocus="OnFrameRateLostFocus" PreviewKeyDown="OnFrameRateKeyDown"
+                                 PointerWheelChanged="OnFrameRateWheel"/>
+                        <Button Grid.Column="1" VerticalAlignment="Bottom" Height="32" Padding="10,0"
+                                Visibility="{x:Bind VM.IsFrameRatePreset, Mode=OneWay}"
+                                Click="OnEnableFrameRateCustom" Content="커스텀"/>
+                        <Button Grid.Column="1" Style="{StaticResource GlyphButtonStyle}"
+                                VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
+                                Visibility="{x:Bind VM.FrameRateIsCustom, Mode=OneWay}"
+                                Click="OnResetFrameRateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
+                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                        </Button>
+                    </Grid>
+                    <ComboBox x:Name="CboDeinterlace" Header="디인터레이스" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.DeinterlaceIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="자동"/>
+                        <ComboBoxItem Content="항상 사용"/>
+                        <ComboBoxItem Content="사용 안 함"/>
+                    </ComboBox>
+
+                    <!-- 오디오 -->
+                    <TextBlock x:Name="TxtAudioGroupHeader" Text="오디오" FontWeight="SemiBold"
+                               Foreground="{StaticResource BcTextBrush}" Margin="0,4,0,0"/>
+                    <ComboBox x:Name="CboAudioCodec" Header="오디오 코덱" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.AudioCodecIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="AAC"/>
+                        <ComboBoxItem Content="MP3"/>
+                        <ComboBoxItem Content="MP2"/>
+                        <ComboBoxItem Content="Opus"/>
+                        <ComboBoxItem Content="Vorbis"/>
+                        <ComboBoxItem Content="FLAC"/>
+                        <ComboBoxItem Content="PCM"/>
+                    </ComboBox>
+                    <ComboBox x:Name="CboAudioRateControl" Header="압축 방식" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.AudioRateControlIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="품질 기반 (VBR)"/>
+                        <ComboBoxItem Content="비트레이트 기반 (CBR)"/>
+                    </ComboBox>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <ComboBox Grid.Column="0" x:Name="CboAudioBitratePreset" Header="비트레이트 (kbps)"
+                                  HorizontalAlignment="Stretch"
+                                  Visibility="{x:Bind VM.IsAudioBitratePreset, Mode=OneWay}"
+                                  SelectionChanged="OnAudioBitratePresetChanged">
+                            <ComboBoxItem Content="96 kbps"/>
+                            <ComboBoxItem Content="128 kbps"/>
+                            <ComboBoxItem Content="192 kbps"/>
+                            <ComboBoxItem Content="256 kbps"/>
+                            <ComboBoxItem Content="320 kbps"/>
+                        </ComboBox>
+                        <TextBox Grid.Column="0" x:Name="TxtAudioBitrate" Header="비트레이트 (kbps)"
+                                 TextAlignment="Right" InputScope="Number"
+                                 Visibility="{x:Bind VM.AudioBitrateIsCustom, Mode=OneWay}"
+                                 Text="{x:Bind local:NumericFormat.Text(VM.AudioBitrateKbps, 0), Mode=OneWay}"
+                                 LostFocus="OnAudioBitrateLostFocus" PreviewKeyDown="OnAudioBitrateKeyDown"
+                                 PointerWheelChanged="OnAudioBitrateWheel"/>
+                        <Button Grid.Column="1" VerticalAlignment="Bottom" Height="32" Padding="10,0"
+                                Visibility="{x:Bind VM.IsAudioBitratePreset, Mode=OneWay}"
+                                Click="OnEnableAudioBitrateCustom" Content="커스텀"/>
+                        <Button Grid.Column="1" Style="{StaticResource GlyphButtonStyle}"
+                                VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
+                                Visibility="{x:Bind VM.AudioBitrateIsCustom, Mode=OneWay}"
+                                Click="OnResetAudioBitrateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
+                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                        </Button>
+                    </Grid>
+                    <ComboBox x:Name="CboAudioChannels" Header="채널" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.AudioChannelsIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="원본 유지"/>
+                        <ComboBoxItem Content="모노"/>
+                        <ComboBoxItem Content="스테레오"/>
+                        <ComboBoxItem Content="5.1"/>
+                        <ComboBoxItem Content="7.1"/>
+                    </ComboBox>
+                    <ComboBox x:Name="CboSampleRate" Header="샘플레이트" HorizontalAlignment="Stretch"
+                              SelectedIndex="{x:Bind VM.AudioSampleRateIndex, Mode=TwoWay}">
+                        <ComboBoxItem Content="원본 유지"/>
+                        <ComboBoxItem Content="44100 Hz"/>
+                        <ComboBoxItem Content="48000 Hz"/>
+                        <ComboBoxItem Content="96000 Hz"/>
+                    </ComboBox>
+                    <CheckBox x:Name="CbNormalize" Content="노멀라이즈 사용"
+                              IsChecked="{x:Bind VM.Normalize, Mode=TwoWay}"/>
+                </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
 
@@ -141,7 +349,7 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                         Spacing="8" VerticalAlignment="Center">
                 <Button x:Name="BtnCancel" Content="취소" Click="OnCancel" Style="{StaticResource DialogSecondaryButtonStyle}"/>
-                <Button x:Name="BtnStart"  Content="시작"  Click="OnStart"
+                <Button x:Name="BtnStart"  Content="시작"  Click="OnStart" TabIndex="0"
                         Style="{StaticResource DialogPrimaryButtonStyle}"/>
             </StackPanel>
         </Grid>

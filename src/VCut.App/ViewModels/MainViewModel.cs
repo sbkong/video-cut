@@ -228,6 +228,85 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private double _resizeWidth;
     [ObservableProperty] private double _resizeHeight;
 
+    // ──────────────── 변환 모드 상세 — 비디오 ────────────────
+
+    /// <summary>0=H.264,1=HEVC,2=AV1,3=VP8,4=VP9,5=Xvid,6=MPEG-4,7=Motion JPEG</summary>
+    [ObservableProperty] private int _videoCodecIndex;
+
+    /// <summary>0=품질 기반(VBR),1=비트레이트 기반(CBR)</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsVideoBitrateEditable))]
+    private int _videoRateControlIndex = 1;
+
+    public bool IsVideoBitrateEditable => VideoRateControlIndex == 1;
+
+    [ObservableProperty] private double _videoBitrateKbps = 8000;
+
+    /// <summary>비트레이트를 프리셋이 아니라 직접 입력하는 중인지 여부.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsVideoBitratePreset))]
+    private bool _videoBitrateIsCustom;
+
+    public bool IsVideoBitratePreset => !VideoBitrateIsCustom;
+
+    /// <summary>0=원본 유지,1=가로 맞춤,2=세로 맞춤,3=직접 지정</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSizeCustom))]
+    private int _sizeModeIndex;
+
+    public bool IsSizeCustom => SizeModeIndex != 0;
+
+    /// <summary>"포함할 항목"에 서로 다른 원본 파일이 여러 개 섞여 있으면 화면 크기의
+    /// "원본 유지"가 의미 없으므로(어느 파일 기준인지 모호) 숨김.</summary>
+    public bool CanKeepOriginalSize
+    {
+        get
+        {
+            var relevant = Segments.Where(s => s.IsPicked).ToList();
+            if (relevant.Count == 0) relevant = [.. Segments];
+            return relevant.Select(s => (s.Root ?? s).FilePath).Distinct().Count() <= 1;
+        }
+    }
+
+    /// <summary>출력 프레임레이트(fps). 0이면 원본 유지.</summary>
+    [ObservableProperty] private double _outputFrameRate;
+
+    /// <summary>프레임레이트를 프리셋이 아니라 직접 입력하는 중인지 여부.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFrameRatePreset))]
+    private bool _frameRateIsCustom;
+
+    public bool IsFrameRatePreset => !FrameRateIsCustom;
+
+    /// <summary>0=자동,1=항상 사용,2=사용 안 함</summary>
+    [ObservableProperty] private int _deinterlaceIndex;
+
+    // ──────────────── 변환 모드 상세 — 오디오 ────────────────
+
+    /// <summary>0=AAC,1=MP3,2=MP2,3=Opus,4=Vorbis,5=FLAC,6=PCM</summary>
+    [ObservableProperty] private int _audioCodecIndex;
+
+    /// <summary>0=품질 기반(VBR),1=비트레이트 기반(CBR)</summary>
+    [ObservableProperty] private int _audioRateControlIndex = 1;
+
+    [ObservableProperty] private double _audioBitrateKbps = 192;
+
+    /// <summary>비트레이트를 프리셋이 아니라 직접 입력하는 중인지 여부.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsAudioBitratePreset))]
+    private bool _audioBitrateIsCustom;
+
+    public bool IsAudioBitratePreset => !AudioBitrateIsCustom;
+
+    /// <summary>0=원본 유지,1=모노,2=스테레오,3=5.1,4=7.1</summary>
+    [ObservableProperty] private int _audioChannelsIndex;
+
+    /// <summary>0=원본 유지,1=44100Hz,2=48000Hz,3=96000Hz</summary>
+    [ObservableProperty] private int _audioSampleRateIndex;
+
+    /// <summary>노멀라이즈(loudnorm) 사용 여부.</summary>
+    [ObservableProperty] private bool _normalize;
+
     // ════════════════ 프로젝트 저장 / 열기 ════════════════
 
     private string? _currentProjectPath;
@@ -385,6 +464,10 @@ public sealed partial class MainViewModel : ObservableObject
                         {
                             Start = TimeSpan.FromSeconds(range.StartSeconds),
                             End = TimeSpan.FromSeconds(range.EndSeconds),
+                            ContainerFormat = MediaInfoFormat.Container(clip.Path),
+                            VideoInfo = MediaInfoFormat.Video(info),
+                            AudioInfo = MediaInfoFormat.Audio(info),
+                            Info = info,
                         };
                         Segments.Add(seg);
                         seg.RangeChanged += OnSegmentRangeChanged;
@@ -492,6 +575,10 @@ public sealed partial class MainViewModel : ObservableObject
                         Start = TimeSpan.Zero,
                         End = info.Duration,
                         Speed = SpeedFactor,
+                        ContainerFormat = MediaInfoFormat.Container(paths[i]),
+                        VideoInfo = MediaInfoFormat.Video(info),
+                        AudioInfo = MediaInfoFormat.Audio(info),
+                        Info = info,
                     };
                     Segments.Add(seg);
                     added.Add(seg);
@@ -751,6 +838,10 @@ public sealed partial class MainViewModel : ObservableObject
             Root = root,
             Speed = src.Speed,
             SpeedIsCustom = src.SpeedIsCustom,
+            ContainerFormat = src.ContainerFormat,
+            VideoInfo = src.VideoInfo,
+            AudioInfo = src.AudioInfo,
+            Info = src.Info,
         };
         copy.RangeChanged += OnSegmentRangeChanged;
         Segments.Insert(LastIndexOfGroup(root) + 1, copy);
@@ -1105,9 +1196,13 @@ public sealed partial class MainViewModel : ObservableObject
             var result = await op(_editor, settings, progress, _cts.Token);
             if (result.Success)
             {
+                var outputs = result.OutputFiles;
+                if (!string.IsNullOrWhiteSpace(OutputFileNameOverride) && outputs.Count == 1)
+                    outputs = [RenameOutput(outputs[0], OutputFileNameOverride!)];
+
                 ProgressValue = 100;
-                StatusText = Loc.Format("vm.done", result.OutputFiles.Count, result.Elapsed.TotalSeconds.ToString("0.0"));
-                await OpenOutputFolderIfEnabledAsync(result.OutputFiles);
+                StatusText = Loc.Format("vm.done", outputs.Count, result.Elapsed.TotalSeconds.ToString("0.0"));
+                await OpenOutputFolderIfEnabledAsync(outputs);
             }
             else
             {
@@ -1130,6 +1225,7 @@ public sealed partial class MainViewModel : ObservableObject
             _cts?.Dispose();
             _cts = null;
             OutputDirOverride = null;
+            OutputFileNameOverride = null;
             NotifyCommands();
         }
     }
@@ -1151,11 +1247,97 @@ public sealed partial class MainViewModel : ObservableObject
         var app = SettingsStore.Current;
         s.MoovAtFront = app.MoovAtFront;
         s.HardwareAccel = app.DefaultHardwareAccel;
+
+        // 변환 모드 상세 — 비디오.
+        s.VideoCodec = VideoCodecIndex switch
+        {
+            1 => VideoCodec.Hevc,
+            2 => VideoCodec.Av1,
+            3 => VideoCodec.Vp8,
+            4 => VideoCodec.Vp9,
+            5 => VideoCodec.Xvid,
+            6 => VideoCodec.Mpeg4,
+            7 => VideoCodec.MotionJpeg,
+            _ => VideoCodec.H264,
+        };
+        s.VideoRateControl = VideoRateControlIndex == 1 ? RateControl.Cbr : RateControl.Vbr;
+        s.VideoBitrateKbps = (int)VideoBitrateKbps;
+        s.SizeMode = SizeModeIndex switch
+        {
+            1 => VideoSizeMode.FitWidth,
+            2 => VideoSizeMode.FitHeight,
+            3 => VideoSizeMode.Fixed,
+            _ => VideoSizeMode.KeepOriginal,
+        };
+        if (SizeModeIndex != 0)
+        {
+            s.Width = (int)ResizeWidth;
+            s.Height = (int)ResizeHeight;
+        }
+        if (OutputFrameRate > 0) s.FrameRate = OutputFrameRate;
+        s.Deinterlace = DeinterlaceIndex switch
+        {
+            1 => Deinterlace.Always,
+            2 => Deinterlace.Off,
+            _ => Deinterlace.Auto,
+        };
+
+        // 변환 모드 상세 — 오디오.
+        s.AudioCodec = AudioCodecIndex switch
+        {
+            1 => AudioCodec.Mp3,
+            2 => AudioCodec.Mp2,
+            3 => AudioCodec.Opus,
+            4 => AudioCodec.Vorbis,
+            5 => AudioCodec.Flac,
+            6 => AudioCodec.Pcm,
+            _ => AudioCodec.Aac,
+        };
+        s.AudioRateControl = AudioRateControlIndex == 1 ? RateControl.Cbr : RateControl.Vbr;
+        s.AudioBitrateKbps = (int)AudioBitrateKbps;
+        s.AudioChannels = AudioChannelsIndex switch
+        {
+            1 => 1,
+            2 => 2,
+            3 => 6,
+            4 => 8,
+            _ => 0,
+        };
+        s.AudioSampleRate = AudioSampleRateIndex switch
+        {
+            1 => 44100,
+            2 => 48000,
+            3 => 96000,
+            _ => 0,
+        };
+        s.Normalize = Normalize;
+
         return s;
     }
 
     /// <summary>출력 설정 창에서 이번 실행에만 적용할 폴더 재정의. 실행 전 창에서 설정, 완료 후 자동 초기화.</summary>
     public string? OutputDirOverride { get; set; }
+
+    /// <summary>출력 설정 창에서 지정한 저장 파일명(확장자 제외). 출력이 1개일 때만 적용, 완료 후 자동 초기화.</summary>
+    public string? OutputFileNameOverride { get; set; }
+
+    /// <summary>결과 파일을 지정한 파일명으로 이름 변경(같은 폴더, 확장자 유지). 이름 충돌 시 " (1)" 등을 붙임.
+    /// 실패하면 원래 경로를 그대로 반환.</summary>
+    private static string RenameOutput(string path, string newBaseName)
+    {
+        var dir = Path.GetDirectoryName(path) ?? "";
+        var ext = Path.GetExtension(path);
+        var safeName = string.Concat(newBaseName.Split(Path.GetInvalidFileNameChars()));
+        if (safeName.Length == 0) return path;
+
+        var candidate = Path.Combine(dir, safeName + ext);
+        int n = 1;
+        while (File.Exists(candidate))
+            candidate = Path.Combine(dir, $"{safeName} ({n++}){ext}");
+
+        try { File.Move(path, candidate); return candidate; }
+        catch { return path; }
+    }
 
     /// <summary>실제 출력 폴더: 창 재정의 → 환경설정 → 원본 위치 순으로 결정.</summary>
     private string? OutputDir =>

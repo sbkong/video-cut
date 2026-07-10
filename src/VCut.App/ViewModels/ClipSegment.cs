@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using VCut.App.Locale;
+using VCut.Core.Models;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 
@@ -89,6 +90,17 @@ public sealed partial class ClipSegment : ObservableObject
     public bool FlipV { get; set; }
     /// <summary>미리보기 볼륨 (0.0 ~ 1.0).</summary>
     public double Volume { get; set; } = 1.0;
+
+    /// <summary>"포함할 항목" 표의 "비디오 형식" 열(컨테이너 확장자, 예: MP4).</summary>
+    public string ContainerFormat { get; init; } = "-";
+    /// <summary>"포함할 항목" 표의 "비디오 정보" 열(해상도·fps·코덱).</summary>
+    public string VideoInfo { get; init; } = "-";
+    /// <summary>"포함할 항목" 표의 "오디오 정보" 열(코덱·채널·샘플레이트).</summary>
+    public string AudioInfo { get; init; } = "-";
+
+    /// <summary>ffprobe로 분석한 원본 미디어 정보. 변환 모드 상세 설정의 기본값(원본 값 불러오기)에 사용.
+    /// 파일 누락 등으로 분석 실패 시 null.</summary>
+    public MediaInfo? Info { get; init; }
 
     /// <summary>이 구간에 적용할 배속(0.25~32). "포함할 항목" 목록에서 개별 조절, 실제 출력에 반영됨.</summary>
     [ObservableProperty] private double _speed = 1.0;
