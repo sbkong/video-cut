@@ -46,6 +46,7 @@ public sealed partial class SettingsWindow : WindowBase
 
         if (AppWindow is { } aw)
             aw.Resize(new Windows.Graphics.SizeInt32(560, 640));
+        SetMinSize(480, 560);
     }
 
     private void ApplyLocale()
@@ -253,17 +254,13 @@ public sealed partial class SettingsWindow : WindowBase
         if (conflictId is not null)
         {
             var conflictDef = KeymapActions.All.First(a => a.Id == conflictId);
-            var confirm = new ContentDialog
-            {
-                Title = Loc.Get("keymap.conflict_title"),
-                Content = Loc.Format("keymap.conflict_msg", Loc.Get(conflictDef.LocKey)),
-                PrimaryButtonText = Loc.Get("dlg.yes"),
-                CloseButtonText = Loc.Get("dlg.no"),
-                DefaultButton = ContentDialogButton.Close,
-                XamlRoot = Content.XamlRoot,
-                FontFamily = FontService.Resolve(SettingsStore.Current),
-            };
-            if (await confirm.ShowAsync() != ContentDialogResult.Primary) return;
+            var proceed = await Dialogs.ConfirmAsync(
+                Content.XamlRoot,
+                Loc.Get("keymap.conflict_title"),
+                Loc.Format("keymap.conflict_msg", Loc.Get(conflictDef.LocKey)),
+                DialogSeverity.Warning,
+                defaultToPrimary: false);
+            if (!proceed) return;
             S.Keymap[conflictId] = "";
         }
 

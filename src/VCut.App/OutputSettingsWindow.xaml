@@ -14,7 +14,7 @@
         <!-- ════════ 헤더 바 ════════ -->
         <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" Padding="16,0"
               ColumnDefinitions="Auto,*,Auto">
-            <TextBlock Grid.Column="0" x:Name="HeaderText" Text="출력 설정" FontSize="14" FontWeight="SemiBold"
+            <TextBlock Grid.Column="0" x:Name="HeaderText" Text="출력 설정" FontSize="{StaticResource FsBodyLarge}" FontWeight="SemiBold"
                        Foreground="{StaticResource BcTextBrush}" VerticalAlignment="Center"/>
             <ToggleSwitch Grid.Column="2" x:Name="TglFastMode"
                           IsOn="{x:Bind VM.IsFastMode, Mode=TwoWay}"
@@ -79,13 +79,13 @@
                                   CornerRadius="6,6,0,0">
                                 <CheckBox Grid.Column="0" x:Name="CbSelectAll" Click="OnSelectAllClick"
                                           ToolTipService.ToolTip="전체 선택/해제"/>
-                                <TextBlock Grid.Column="1" x:Name="TxtColFilename" Text="파일명" FontWeight="SemiBold" FontSize="12"
+                                <TextBlock Grid.Column="1" x:Name="TxtColFilename" Text="파일명" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" x:Name="TxtColVideo" Text="비디오 정보" FontWeight="SemiBold" FontSize="12"
+                                <TextBlock Grid.Column="2" x:Name="TxtColVideo" Text="비디오 정보" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" x:Name="TxtColAudio" Text="오디오 정보" FontWeight="SemiBold" FontSize="12"
+                                <TextBlock Grid.Column="3" x:Name="TxtColAudio" Text="오디오 정보" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="4" x:Name="TxtColSpeed" Text="배속" FontWeight="SemiBold" FontSize="12"
+                                <TextBlock Grid.Column="4" x:Name="TxtColSpeed" Text="배속" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Grid>
 
@@ -103,16 +103,16 @@
                                                        Text="{x:Bind PickLabel, Mode=OneWay}"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="2" Text="{x:Bind VideoInfo}"
-                                                       VerticalAlignment="Center" FontSize="12"
+                                                       VerticalAlignment="Center" FontSize="{StaticResource FsCaption}"
                                                        Foreground="{StaticResource BcTextSecondaryBrush}"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="3" Text="{x:Bind AudioInfo}"
-                                                       VerticalAlignment="Center" FontSize="12"
+                                                       VerticalAlignment="Center" FontSize="{StaticResource FsCaption}"
                                                        Foreground="{StaticResource BcTextSecondaryBrush}"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4"
                                                         VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                <Button Height="32" MinWidth="60" Padding="0" FontSize="12"
+                                                <Button Height="32" MinWidth="60" Padding="0" FontSize="{StaticResource FsCaption}"
                                                         HorizontalContentAlignment="Center"
                                                         Visibility="{x:Bind SpeedIsDefault, Mode=OneWay}"
                                                         Click="OnEnableRowSpeed"
@@ -124,7 +124,7 @@
                                                         Visibility="{x:Bind SpeedIsCustom, Mode=OneWay}"
                                                         Click="OnResetRowSpeed"
                                                         ToolTipService.ToolTip="공통 배속으로 초기화">
-                                                    <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                                                    <FontIcon Glyph="&#xE777;" FontSize="{StaticResource FsCaption}"/>
                                                 </Button>
                                                 <TextBox Height="32" Width="60"
                                                          TextAlignment="Right" InputScope="Number"
@@ -216,7 +216,7 @@
                                 VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
                                 Visibility="{x:Bind VM.VideoBitrateIsCustom, Mode=OneWay}"
                                 Click="OnResetVideoBitrateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
-                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                            <FontIcon Glyph="&#xE777;" FontSize="{StaticResource FsCaption}"/>
                         </Button>
                     </Grid>
                     <ComboBox x:Name="CboSizeMode" Header="화면 크기" HorizontalAlignment="Stretch"
@@ -266,7 +266,7 @@
                                 VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
                                 Visibility="{x:Bind VM.FrameRateIsCustom, Mode=OneWay}"
                                 Click="OnResetFrameRateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
-                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                            <FontIcon Glyph="&#xE777;" FontSize="{StaticResource FsCaption}"/>
                         </Button>
                     </Grid>
                     <ComboBox x:Name="CboDeinterlace" Header="디인터레이스" HorizontalAlignment="Stretch"
@@ -318,7 +318,7 @@
                                 VerticalAlignment="Bottom" Height="32" Width="32" Padding="0"
                                 Visibility="{x:Bind VM.AudioBitrateIsCustom, Mode=OneWay}"
                                 Click="OnResetAudioBitrateCustom" ToolTipService.ToolTip="프리셋으로 되돌리기">
-                            <FontIcon Glyph="&#xE777;" FontSize="12"/>
+                            <FontIcon Glyph="&#xE777;" FontSize="{StaticResource FsCaption}"/>
                         </Button>
                     </Grid>
                     <ComboBox x:Name="CboAudioChannels" Header="채널" HorizontalAlignment="Stretch"

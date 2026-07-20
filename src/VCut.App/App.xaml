@@ -11,6 +11,24 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <ResourceDictionary Source="ms-appx:///Themes/Theme.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- ContentDialog(정보/오류/확인) 표면을 JetBrains 팔레트에 맞춤.
+                 ThemeDictionaries라 ElementTheme(라이트/다크) 전환을 그대로 따른다. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="ContentDialogBackground" Color="#FF2B2D30" />
+                    <SolidColorBrush x:Key="ContentDialogForeground" Color="#FFBCBEC4" />
+                    <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="#FF393B40" />
+                    <SolidColorBrush x:Key="ContentDialogSeparatorBorderBrush" Color="#FF393B40" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="ContentDialogBackground" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="ContentDialogForeground" Color="#FF1C1D1F" />
+                    <SolidColorBrush x:Key="ContentDialogBorderBrush" Color="#FFD0D3DA" />
+                    <SolidColorBrush x:Key="ContentDialogSeparatorBorderBrush" Color="#FFD0D3DA" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
             <conv:InverseBooleanConverter x:Key="NotConverter" />
             <conv:InverseBoolToVisibilityConverter x:Key="NotToVisibilityConverter" />
             <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/JetBrainsMono-Regular.ttf#JetBrains Mono</FontFamily>

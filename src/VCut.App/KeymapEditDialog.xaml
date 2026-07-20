@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ContentDialog
+<local:ThemedContentDialog
     x:Class="VCut.App.KeymapEditDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:VCut.App"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -15,11 +16,11 @@
     <StackPanel Spacing="14" Width="320">
         <TextBlock x:Name="TxtActionName" FontWeight="SemiBold" />
         <TextBox x:Name="CaptureBox" IsReadOnly="True"
-                 TextAlignment="Center" FontSize="15" Padding="0,14"
+                 TextAlignment="Center" FontSize="{StaticResource FsSubtitle}" Padding="0,14"
                  KeyDown="OnCaptureKeyDown" />
-        <TextBlock x:Name="TxtConflict" Foreground="#E5534B" FontSize="12"
+        <TextBlock x:Name="TxtConflict" Foreground="{StaticResource BcDangerTextBrush}" FontSize="{StaticResource FsCaption}"
                    TextWrapping="Wrap" Visibility="Collapsed" />
         <Button x:Name="BtnClear" Click="OnClearClick"
                 HorizontalAlignment="Left" Background="Transparent" BorderThickness="0" Padding="0,4" />
     </StackPanel>
-</ContentDialog>
+</local:ThemedContentDialog>

@@ -86,7 +86,7 @@ public sealed partial class MainWindow : Window
             }
             args.Cancel = true;
 
-            var dlg = new ContentDialog
+            var dlg = new ThemedContentDialog
             {
                 Title = Loc.Get("dlg.unsaved_title"),
                 Content = Loc.Get("dlg.unsaved_msg"),
@@ -95,7 +95,6 @@ public sealed partial class MainWindow : Window
                 CloseButtonText = Loc.Get("dlg.cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = Root.XamlRoot,
-                FontFamily = AppFontFamily,
             };
             var result = await dlg.ShowAsync();
             if (result == ContentDialogResult.Primary)
@@ -445,16 +444,14 @@ public sealed partial class MainWindow : Window
     {
         if (!File.Exists(path))
         {
-            var dlg = new ContentDialog
-            {
-                Title = Loc.Get("dlg.missing_title"),
-                Content = Loc.Get("dlg.missing_msg"),
-                PrimaryButtonText = Loc.Get("dlg.remove_from_list"),
-                CloseButtonText = Loc.Get("dlg.cancel"),
-                XamlRoot = Root.XamlRoot,
-                FontFamily = AppFontFamily,
-            };
-            if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+            var remove = await Dialogs.ConfirmAsync(
+                Root.XamlRoot,
+                Loc.Get("dlg.missing_title"),
+                Loc.Get("dlg.missing_msg"),
+                DialogSeverity.Warning,
+                primaryText: Loc.Get("dlg.remove_from_list"),
+                closeText: Loc.Get("dlg.cancel"));
+            if (remove)
                 VM.RemoveRecentProject(path);
             return;
         }
@@ -492,6 +489,23 @@ public sealed partial class MainWindow : Window
 
     private void OnSetStartToCurrent(object sender, RoutedEventArgs e) => VM.TrimStart = Preview.Position;
     private void OnSetEndToCurrent(object sender, RoutedEventArgs e) => VM.TrimEnd = Preview.Position;
+
+    // 구간 미세조정 행이 패널 폭을 넘치면 라벨(시작/끝/구간 추가)을 숨기고 아이콘만 남긴다.
+    private void OnTrimControlsAreaSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // 라벨을 모두 보이게 한 상태의 필요 너비를 측정해 현재 폭과 비교한다.
+        SetTrimLabelsVisible(true);
+        TrimControlsRow.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+        SetTrimLabelsVisible(e.NewSize.Width >= TrimControlsRow.DesiredSize.Width);
+    }
+
+    private void SetTrimLabelsVisible(bool visible)
+    {
+        var v = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (LblSetStart.Visibility != v) LblSetStart.Visibility = v;
+        if (LblSetEnd.Visibility   != v) LblSetEnd.Visibility   = v;
+        if (LblAddRange.Visibility != v) LblAddRange.Visibility = v;
+    }
     private void OnRangePlayPause(object sender, RoutedEventArgs e)
     {
         bool wasPlaying = Preview.IsPlaying;
@@ -733,45 +747,9 @@ public sealed partial class MainWindow : Window
         return file is null ? [] : [file.Path];
     }
 
-    private async Task ShowMessageAsync(string title, string message)
-    {
-        var dialog = new ContentDialog
-        {
-            Title = title,
-            Content = new ScrollViewer
-            {
-                Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
-                MaxHeight = 400,
-            },
-            CloseButtonText = Loc.Get("dlg.ok"),
-            XamlRoot = Root.XamlRoot,
-            FontFamily = AppFontFamily,
-        };
-        await dialog.ShowAsync();
-    }
+    private Task ShowMessageAsync(string title, string message)
+        => Dialogs.ShowMessageAsync(Root.XamlRoot, title, message);
 
-    private async Task<(bool confirmed, bool dontAskAgain)> ShowConfirmAsync(string title, string message)
-    {
-        var checkBox = new CheckBox
-        {
-            Content = Loc.Get("dlg.dont_ask"),
-            Margin = new Microsoft.UI.Xaml.Thickness(0, 10, 0, 0),
-        };
-        var panel = new StackPanel { Spacing = 0 };
-        panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(checkBox);
-
-        var dialog = new ContentDialog
-        {
-            Title = title,
-            Content = panel,
-            PrimaryButtonText = Loc.Get("dlg.yes"),
-            CloseButtonText = Loc.Get("dlg.no"),
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = Root.XamlRoot,
-            FontFamily = AppFontFamily,
-        };
-        var result = await dialog.ShowAsync();
-        return (result == ContentDialogResult.Primary, checkBox.IsChecked == true);
-    }
+    private Task<(bool confirmed, bool dontAskAgain)> ShowConfirmAsync(string title, string message)
+        => Dialogs.ConfirmWithOptOutAsync(Root.XamlRoot, title, message);
 }

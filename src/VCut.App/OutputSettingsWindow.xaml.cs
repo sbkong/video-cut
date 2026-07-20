@@ -45,6 +45,7 @@ public sealed partial class OutputSettingsWindow : WindowBase
         }
 
         AppWindow.Resize(new Windows.Graphics.SizeInt32(760, 640));
+        SetMinSize(760, 560);
 
         // 창을 열 때마다 "포함 모드"로 초기화. 메인 목록에서 선택(IsSelected)해둔 항목이 있으면
         // 그것만 기본으로 체크, 없으면(아무것도 선택 안 했으면) 전체를 기본으로 체크.

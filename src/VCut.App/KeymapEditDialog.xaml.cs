@@ -8,7 +8,7 @@ using VCut.App.Settings;
 namespace VCut.App;
 
 /// <summary>단축키 설정 탭에서 '변경' 클릭 시 표시되는 새 단축키 입력 다이얼로그.</summary>
-public sealed partial class KeymapEditDialog : ContentDialog
+public sealed partial class KeymapEditDialog : ThemedContentDialog
 {
     /// <summary>확인 시 선택된 단축키 문자열("Ctrl+O" 등). 단축키 없음이면 "".</summary>
     public string ResultCombo { get; private set; }
@@ -16,7 +16,6 @@ public sealed partial class KeymapEditDialog : ContentDialog
     public KeymapEditDialog(string actionName, string currentCombo)
     {
         InitializeComponent();
-        FontFamily = FontService.Resolve(SettingsStore.Current);
         ResultCombo = currentCombo;
 
         Title = Loc.Get("keymap.dialog_title");

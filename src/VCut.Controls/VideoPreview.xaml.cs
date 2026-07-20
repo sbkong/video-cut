@@ -452,10 +452,9 @@ public sealed partial class VideoPreview : UserControl
         bool active = LoopButton.IsChecked == true;
         RangeBar.IsLoopActive = active;
 
-        // 버튼 테두리를 빨간색/기본으로 전환
-        LoopButton.BorderBrush = active
-            ? new SolidColorBrush(Color.FromArgb(255, 210, 50, 50))
-            : (SolidColorBrush)Application.Current.Resources["BcDividerBrush"];
+        // 버튼 테두리를 위험색(Danger)/기본으로 전환
+        LoopButton.BorderBrush = (SolidColorBrush)Application.Current.Resources[
+            active ? "BcDangerBrush" : "BcDividerBrush"];
     }
 
     // ── 프레임 이동 ───────────────────────────────────────────────────────

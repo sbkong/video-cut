@@ -85,9 +85,9 @@ public sealed partial class TimelineRangeBar : UserControl
     private void UpdateSelectionColor()
     {
         if (Selection is null) return;
-        Selection.Background = IsLoopActive
-            ? new SolidColorBrush(Color.FromArgb(204, 210, 50, 50))
-            : new SolidColorBrush(Color.FromArgb(204, 53, 116, 240));
+        var key = IsLoopActive ? "BcDangerBrush" : "BcAccentBrush";
+        var c = ((SolidColorBrush)Application.Current.Resources[key]).Color;
+        Selection.Background = new SolidColorBrush(Color.FromArgb(204, c.R, c.G, c.B));
     }
 
     private static void OnLayoutPropChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

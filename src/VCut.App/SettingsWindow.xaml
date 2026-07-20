@@ -73,7 +73,7 @@
 
         <!-- ════════ 헤더 바 ════════ -->
         <Grid Grid.Row="0" Background="{StaticResource BcRailBrush}" Padding="16,0">
-            <TextBlock x:Name="SettingsHeader" Text="환경 설정" FontSize="14" FontWeight="SemiBold"
+            <TextBlock x:Name="SettingsHeader" Text="환경 설정" FontSize="{StaticResource FsBodyLarge}" FontWeight="SemiBold"
                        Foreground="{StaticResource BcTextBrush}" VerticalAlignment="Center"/>
         </Grid>
 
@@ -379,7 +379,7 @@
                     <TextBox Grid.Row="0" x:Name="KeymapSearchBox" Margin="0,0,0,6"
                              TextChanged="OnKeymapSearchChanged"/>
                     <TextBlock Grid.Row="1" x:Name="TxtKeymapNote"
-                               FontSize="11" Margin="2,0,0,4"
+                               FontSize="{StaticResource FsCaptionSmall}" Margin="2,0,0,4"
                                Foreground="{StaticResource BcTextSecondaryBrush}"/>
                     <ListView Grid.Row="2" x:Name="KeymapList" SelectionMode="Single"
                               Padding="0" KeyDown="OnKeymapListKeyDown">

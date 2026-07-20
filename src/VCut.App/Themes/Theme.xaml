@@ -28,6 +28,38 @@
     <SolidColorBrush x:Key="BcTextBrush" Color="{StaticResource BcText}" />
     <SolidColorBrush x:Key="BcTextSecondaryBrush" Color="{StaticResource BcTextSecondary}" />
     <SolidColorBrush x:Key="BcDividerBrush" Color="{StaticResource BcDivider}" />
+    <SolidColorBrush x:Key="BcSliderTrackBrush" Color="{StaticResource BcSliderTrack}" />
+
+    <!-- ════════ 시맨틱(의미) 컬러 ════════
+         런타임에 ThemeService가 라이트/다크로 교체. 초기값은 다크 팔레트.
+         Danger=파괴/오류, Warning=주의/재생헤드, Success=완료 -->
+    <Color x:Key="BcDanger">#FFC24545</Color>
+    <Color x:Key="BcDangerHover">#FFD35C5C</Color>
+    <Color x:Key="BcDangerPressed">#FFA33A3A</Color>
+    <Color x:Key="BcDangerText">#FFE5534B</Color>
+    <Color x:Key="BcWarning">#FFF5A623</Color>
+    <Color x:Key="BcWarningText">#FFF5A623</Color>
+    <Color x:Key="BcSuccess">#FF499C54</Color>
+    <Color x:Key="BcSuccessText">#FF5FAD65</Color>
+
+    <SolidColorBrush x:Key="BcDangerBrush" Color="{StaticResource BcDanger}" />
+    <SolidColorBrush x:Key="BcDangerHoverBrush" Color="{StaticResource BcDangerHover}" />
+    <SolidColorBrush x:Key="BcDangerPressedBrush" Color="{StaticResource BcDangerPressed}" />
+    <SolidColorBrush x:Key="BcDangerTextBrush" Color="{StaticResource BcDangerText}" />
+    <SolidColorBrush x:Key="BcWarningBrush" Color="{StaticResource BcWarning}" />
+    <SolidColorBrush x:Key="BcWarningTextBrush" Color="{StaticResource BcWarningText}" />
+    <SolidColorBrush x:Key="BcSuccessBrush" Color="{StaticResource BcSuccess}" />
+    <SolidColorBrush x:Key="BcSuccessTextBrush" Color="{StaticResource BcSuccessText}" />
+
+    <!-- ════════ 타입 스케일(폰트 크기 토큰) ════════
+         테마 무관 상수. 인라인 FontSize 대신 이 토큰을 참조해 통일한다. -->
+    <x:Double x:Key="FsMicro">10</x:Double>
+    <x:Double x:Key="FsCaptionSmall">11</x:Double>
+    <x:Double x:Key="FsCaption">12</x:Double>
+    <x:Double x:Key="FsBody">13</x:Double>
+    <x:Double x:Key="FsBodyLarge">14</x:Double>
+    <x:Double x:Key="FsSubtitle">15</x:Double>
+    <x:Double x:Key="FsTitle">16</x:Double>
 
     <!-- 시스템 액센트(AccentButton 등)를 통일 -->
     <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{StaticResource BcAccent}" />
@@ -93,7 +125,7 @@
         <Setter Property="FontSize" Value="15" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Background" Value="#FFC24545" />
+        <Setter Property="Background" Value="{StaticResource BcDangerBrush}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -112,12 +144,12 @@
                                 <VisualState x:Name="Normal" />
                                 <VisualState x:Name="PointerOver">
                                     <VisualState.Setters>
-                                        <Setter Target="RootBorder.Background" Value="#FFD35C5C" />
+                                        <Setter Target="RootBorder.Background" Value="{StaticResource BcDangerHoverBrush}" />
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
-                                        <Setter Target="RootBorder.Background" Value="#FFA33A3A" />
+                                        <Setter Target="RootBorder.Background" Value="{StaticResource BcDangerPressedBrush}" />
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="Disabled">

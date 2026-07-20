@@ -25,6 +25,15 @@ public static class ThemeService
         ("BcTextBrush",          "#1C1D1F"),
         ("BcTextSecondaryBrush", "#6C6E73"),
         ("BcDividerBrush",       "#D0D3DA"),
+        ("BcSliderTrackBrush",   "#C9CCD3"),
+        ("BcDangerBrush",        "#D24343"),
+        ("BcDangerHoverBrush",   "#E15A5A"),
+        ("BcDangerPressedBrush", "#B23636"),
+        ("BcDangerTextBrush",    "#C0392B"),
+        ("BcWarningBrush",       "#E08A00"),
+        ("BcWarningTextBrush",   "#C77700"),
+        ("BcSuccessBrush",       "#3E9142"),
+        ("BcSuccessTextBrush",   "#2E7D32"),
         ("AccentFillColorDefaultBrush",   "#2F80D8"),
         ("AccentFillColorSecondaryBrush", "#3E92EA"),
         ("AccentFillColorTertiaryBrush",  "#2F80D8"),
@@ -43,6 +52,15 @@ public static class ThemeService
         ("BcTextBrush",          "#BCBEC4"),
         ("BcTextSecondaryBrush", "#7A7E85"),
         ("BcDividerBrush",       "#393B40"),
+        ("BcSliderTrackBrush",   "#3A3D42"),
+        ("BcDangerBrush",        "#C24545"),
+        ("BcDangerHoverBrush",   "#D35C5C"),
+        ("BcDangerPressedBrush", "#A33A3A"),
+        ("BcDangerTextBrush",    "#E5534B"),
+        ("BcWarningBrush",       "#F5A623"),
+        ("BcWarningTextBrush",   "#F5A623"),
+        ("BcSuccessBrush",       "#499C54"),
+        ("BcSuccessTextBrush",   "#5FAD65"),
         ("AccentFillColorDefaultBrush",   "#3574F0"),
         ("AccentFillColorSecondaryBrush", "#4A83F0"),
         ("AccentFillColorTertiaryBrush",  "#3574F0"),
@@ -64,7 +82,14 @@ public static class ThemeService
 
     /// <summary>ElementTheme만 설정 (브러시 교체 없음).</summary>
     public static void SetElementTheme(FrameworkElement root, AppTheme theme) =>
-        root.RequestedTheme = theme == AppTheme.Light ? ElementTheme.Light : ElementTheme.Dark;
+        root.RequestedTheme = ToElementTheme(theme);
+
+    /// <summary>현재 앱 테마에 해당하는 ElementTheme.
+    /// ContentDialog 등 팝업은 창의 ElementTheme를 상속 못 하고 App.RequestedTheme로 떨어지므로 명시적으로 지정해야 한다.</summary>
+    public static ElementTheme CurrentElementTheme => ToElementTheme(SettingsStore.Current.Theme);
+
+    private static ElementTheme ToElementTheme(AppTheme theme) =>
+        theme == AppTheme.Light ? ElementTheme.Light : ElementTheme.Dark;
 
     private static Color ParseHex(string hex)
     {

@@ -49,7 +49,7 @@
                     <!-- 타임코드 (좌) -->
                     <TextBlock Grid.Column="0" x:Name="PositionText"
                                Text="00:00:00.00 / 00:00:00.00"
-                               VerticalAlignment="Center" FontSize="12"
+                               VerticalAlignment="Center" FontSize="{StaticResource FsCaption}"
                                Foreground="{StaticResource BcTextBrush}" />
 
                     <!-- 트랜스포트 버튼: 이전키프 · 이전프 · 재생 · 정지 · 다음프 · 다음키프 -->
@@ -59,31 +59,31 @@
                         <Button x:Name="PrevKeyframeButton" Click="OnPrevKeyframe"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="이전 키프레임 (Ctrl+←)">
-                            <FontIcon Glyph="&#xE892;" FontSize="13" />
+                            <FontIcon Glyph="&#xE892;" FontSize="{StaticResource FsBody}" />
                         </Button>
                         <Button x:Name="PrevFrameButton" Click="OnPrevFrame"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="이전 프레임 (←)">
-                            <FontIcon Glyph="&#xE76B;" FontSize="13" />
+                            <FontIcon Glyph="&#xE76B;" FontSize="{StaticResource FsBody}" />
                         </Button>
                         <Button x:Name="PlayPauseButton" Click="OnPlayPause"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="재생/일시정지 (Space)">
-                            <FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="15" />
+                            <FontIcon x:Name="PlayIcon" Glyph="&#xE768;" FontSize="{StaticResource FsSubtitle}" />
                         </Button>
                         <Button Click="OnStop" Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="정지">
-                            <FontIcon Glyph="&#xE71A;" FontSize="13" />
+                            <FontIcon Glyph="&#xE71A;" FontSize="{StaticResource FsBody}" />
                         </Button>
                         <Button x:Name="NextFrameButton" Click="OnNextFrame"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="다음 프레임 (→)">
-                            <FontIcon Glyph="&#xE76C;" FontSize="13" />
+                            <FontIcon Glyph="&#xE76C;" FontSize="{StaticResource FsBody}" />
                         </Button>
                         <Button x:Name="NextKeyframeButton" Click="OnNextKeyframe"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 ToolTipService.ToolTip="다음 키프레임 (Ctrl+→)">
-                            <FontIcon Glyph="&#xE893;" FontSize="13" />
+                            <FontIcon Glyph="&#xE893;" FontSize="{StaticResource FsBody}" />
                         </Button>
                     </StackPanel>
 
@@ -100,7 +100,7 @@
                         <Button x:Name="MuteButton" Click="OnMuteToggle"
                                 Style="{StaticResource GlyphButtonStyle}"
                                 Padding="4" ToolTipService.ToolTip="음소거 토글">
-                            <FontIcon x:Name="VolumeIcon" Glyph="&#xE767;" FontSize="14" />
+                            <FontIcon x:Name="VolumeIcon" Glyph="&#xE767;" FontSize="{StaticResource FsBodyLarge}" />
                         </Button>
                         <Slider x:Name="VolumeSlider"
                                 Width="72" Minimum="0" Maximum="100" Value="100"
@@ -123,11 +123,11 @@
                     <!-- 구간 길이 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
                                 VerticalAlignment="Center">
-                        <TextBlock Text="구간반복 길이" FontSize="10"
+                        <TextBlock Text="구간반복 길이" FontSize="{StaticResource FsMicro}"
                                    Foreground="{StaticResource BcTextSecondaryBrush}"
                                    VerticalAlignment="Center" />
                         <TextBlock x:Name="DurationText" Text="00:00:00.00"
-                                   FontSize="11" FontWeight="SemiBold"
+                                   FontSize="{StaticResource FsCaptionSmall}" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextBrush}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -143,7 +143,7 @@
                                   Checked="OnLoopChanged"
                                   Unchecked="OnLoopChanged"
                                   ToolTipService.ToolTip="범위 반복 재생">
-                        <TextBlock x:Name="LoopLabel" Text="[&#x25B6;]" FontSize="11" />
+                        <TextBlock x:Name="LoopLabel" Text="[&#x25B6;]" FontSize="{StaticResource FsCaptionSmall}" />
                     </ToggleButton>
                 </Grid>
 
