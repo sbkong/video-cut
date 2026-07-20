@@ -53,4 +53,30 @@ public static class MediaInfoFormat
         _ => 0,
     };
 
+    /// <summary>소스 코덱이 목록에 있으면 그 인덱스, 없으면 null("(원본)" 표기/기본선택 판별용).</summary>
+    public static int? VideoCodecIndexOrNull(string? ffprobeCodecName) => ffprobeCodecName?.ToLowerInvariant() switch
+    {
+        "h264" => 0,
+        "hevc" or "h265" => 1,
+        "av1" => 2,
+        "vp8" => 3,
+        "vp9" => 4,
+        "mpeg4" or "mpeg1video" => 6,
+        "mjpeg" => 7,
+        _ => null,
+    };
+
+    /// <summary>소스 코덱이 목록에 있으면 그 인덱스, 없으면 null.</summary>
+    public static int? AudioCodecIndexOrNull(string? ffprobeCodecName) => ffprobeCodecName?.ToLowerInvariant() switch
+    {
+        "aac" => 0,
+        "mp3" => 1,
+        "mp2" => 2,
+        "opus" => 3,
+        "vorbis" => 4,
+        "flac" => 5,
+        var p when p is not null && p.StartsWith("pcm") => 6,
+        _ => null,
+    };
+
 }

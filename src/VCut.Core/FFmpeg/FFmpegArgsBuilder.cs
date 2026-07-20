@@ -104,8 +104,12 @@ public static class FFmpegArgsBuilder
         }
         else
         {
-            var vf = BuildVideoFilters(s);
-            if (vf.Length > 0) { args.Add("-vf"); args.Add(vf); }
+            // 비디오 복사(원본 코덱 유지)는 필터를 적용할 수 없다(-vf + copy 충돌).
+            if (s.VideoCodec != VideoCodec.Copy)
+            {
+                var vf = BuildVideoFilters(s);
+                if (vf.Length > 0) { args.Add("-vf"); args.Add(vf); }
+            }
             AddVideoCodec(args, s);
         }
 
@@ -224,6 +228,13 @@ public static class FFmpegArgsBuilder
 
     private static void AddVideoCodec(List<string> args, ConversionSettings s)
     {
+        // 원본 코덱 유지 — 재인코딩 없이 비디오 스트림 복사.
+        if (s.VideoCodec == VideoCodec.Copy)
+        {
+            args.Add("-c:v"); args.Add("copy");
+            return;
+        }
+
         var encoder = ResolveVideoEncoder(s.VideoCodec, s.HardwareAccel);
         args.Add("-c:v");
         args.Add(encoder);
@@ -317,6 +328,7 @@ public static class FFmpegArgsBuilder
 
     internal static string ResolveVideoEncoder(VideoCodec codec, HardwareAccel hw) => codec switch
     {
+        VideoCodec.Copy => "copy",
         VideoCodec.H264 => hw switch
         {
             HardwareAccel.Nvenc => "h264_nvenc",

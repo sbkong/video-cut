@@ -24,6 +24,14 @@ public sealed partial class OutputSettingsWindow : WindowBase
     public OutputSettingsWindow(MainViewModel vm)
     {
         VM = vm;
+
+        // 지난 번에 "원본(복사)" 코덱 항목(비디오 8/오디오 7)이 선택돼 인덱스가 VM에 남아 있으면,
+        // 새 창의 콤보는 프리셋만(비디오 8개=0~7, 오디오 7개=0~6) 있어 InitializeComponent의
+        // x:Bind가 범위 밖 SelectedIndex를 적용하다 ArgumentException을 던진다. 안전 범위로 먼저 초기화
+        // (ApplyDefaultsFromSource에서 필요 시 항목을 다시 추가하고 선택한다).
+        if (vm.VideoCodecIndex > 7) vm.VideoCodecIndex = 0;
+        if (vm.AudioCodecIndex > 6) vm.AudioCodecIndex = 0;
+
         InitializeComponent();
 
         Title = $"v-cut — {Loc.Get("out.title")}";
@@ -53,6 +61,10 @@ public sealed partial class OutputSettingsWindow : WindowBase
         foreach (var seg in vm.Segments) seg.IsPicked = anySelected ? seg.IsSelected : true;
         vm.RemoveSelectedEnabled = false;
         vm.IsFastMode = true;
+
+        // 압축 방식은 창을 열 때마다 CBR로 초기화.
+        vm.VideoRateControlIndex = 1;
+        vm.AudioRateControlIndex = 1;
 
         // CanKeepOriginalSize는 IsPicked 초기화 이후 값을 반영해야 하므로 바인딩을 강제 갱신.
         Bindings.Update();
@@ -154,31 +166,155 @@ public sealed partial class OutputSettingsWindow : WindowBase
         var basis = (picked.FirstOrDefault() ?? VM.Segments.FirstOrDefault())?.Info;
         if (basis is null) return;
 
+        // 파일 형식: 소스 컨테이너가 목록에 있으면 기본 선택 + "(원본)" 표기.
+        int containerIdx = ContainerIndexFromExtension(basis.FilePath);
+        if (containerIdx >= 0)
+        {
+            VM.ContainerIndex = containerIdx;
+            MarkSourceItem(CboFormat, containerIdx);
+        }
+
         var v = basis.PrimaryVideo;
         if (v is not null)
         {
-            VM.VideoCodecIndex = MediaInfoFormat.VideoCodecIndex(v.CodecName);
+            // 비디오 코덱: 목록에 있으면 그 항목 기본 선택 + "(원본)".
+            // 목록에 없는 코덱(예: msmpeg4v3)은 재인코딩 대상이 아니므로 "원본(복사)" 항목을 추가해 기본 선택.
+            var vci = MediaInfoFormat.VideoCodecIndexOrNull(v.CodecName);
+            if (vci is int vc)
+            {
+                VM.VideoCodecIndex = vc;
+                MarkSourceItem(CboVideoCodec, vc);
+            }
+            else if (!string.IsNullOrWhiteSpace(v.CodecName))
+            {
+                VM.VideoCodecIndex = AppendSourceCodecItem(CboVideoCodec, v.CodecName);
+            }
+
             if (v.BitRate > 0)
             {
                 int idx = ClosestIndex(VideoBitratePresets, v.BitRate / 1000);
                 VM.VideoBitrateKbps = VideoBitratePresets[idx];
                 CboVideoBitratePreset.SelectedIndex = idx;
+                MarkSourceItem(CboVideoBitratePreset, idx);
             }
             if (v.Width > 0) VM.ResizeWidth = v.Width;
             if (v.Height > 0) VM.ResizeHeight = v.Height;
+
+            // 화면 크기는 해상도 프리셋이 없어 항상 index 0을 소스값으로 표기(중복 없음).
+            if (v.Width > 0 && v.Height > 0)
+                SetKeepOriginalLabel(CboSizeMode, $"{v.Width}×{v.Height}");
+            // 프레임레이트: 소스값이 프리셋과 같으면 그 프리셋에 표기+선택, 아니면 index 0 표기.
+            if (v.FrameRate > 0)
+                ApplySourceValue(CboFrameRatePreset, FrameRatePresetIndex(v.FrameRate),
+                    $"{v.FrameRate.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} fps",
+                    i => CboFrameRatePreset.SelectedIndex = i);
         }
 
         var a = basis.PrimaryAudio;
         if (a is not null)
         {
-            VM.AudioCodecIndex = MediaInfoFormat.AudioCodecIndex(a.CodecName);
+            var aci = MediaInfoFormat.AudioCodecIndexOrNull(a.CodecName);
+            if (aci is int ac)
+            {
+                VM.AudioCodecIndex = ac;
+                MarkSourceItem(CboAudioCodec, ac);
+            }
+            else if (!string.IsNullOrWhiteSpace(a.CodecName))
+            {
+                VM.AudioCodecIndex = AppendSourceCodecItem(CboAudioCodec, a.CodecName);
+            }
+
             if (a.BitRate > 0)
             {
                 int idx = ClosestIndex(AudioBitratePresets, a.BitRate / 1000);
                 VM.AudioBitrateKbps = AudioBitratePresets[idx];
                 CboAudioBitratePreset.SelectedIndex = idx;
+                MarkSourceItem(CboAudioBitratePreset, idx);
             }
+
+            if (a.Channels > 0)
+                ApplySourceValue(CboAudioChannels, ChannelsPresetIndex(a.Channels), a.ChannelLabel,
+                    i => VM.AudioChannelsIndex = i);
+            if (a.SampleRate > 0)
+                ApplySourceValue(CboSampleRate, SampleRatePresetIndex(a.SampleRate), $"{a.SampleRate} Hz",
+                    i => VM.AudioSampleRateIndex = i);
         }
+    }
+
+    /// <summary>소스 확장자 → 파일 형식 콤보 인덱스(MP4=0, MKV=1, WebM=2, AVI=3). 목록에 없으면 -1.</summary>
+    private static int ContainerIndexFromExtension(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    {
+        ".mp4" => 0,
+        ".mkv" => 1,
+        ".webm" => 2,
+        ".avi" => 3,
+        _ => -1,
+    };
+
+    /// <summary>콤보의 특정 항목 뒤에 " (원본)"을 붙여 소스와 일치하는 선택지를 표시.</summary>
+    private static void MarkSourceItem(ComboBox combo, int index)
+    {
+        if (index >= 0 && index < combo.Items.Count
+            && combo.Items[index] is ComboBoxItem item && item.Content is string s
+            && !s.EndsWith(" (원본)"))
+            item.Content = $"{s} (원본)";
+    }
+
+    /// <summary>목록에 없는 소스 코덱을 "{코덱} (원본)" 항목으로 콤보 끝에 추가하고 그 인덱스를 반환.
+    /// 이 인덱스는 VM 스위치에서 스트림 복사(Copy)로 매핑된다.</summary>
+    private static int AppendSourceCodecItem(ComboBox combo, string codecName)
+    {
+        combo.Items.Add(new ComboBoxItem { Content = $"{codecName} (원본)" });
+        return combo.Items.Count - 1;
+    }
+
+    /// <summary>콤보의 "원본 유지"(index 0) 항목 텍스트를 "소스값 (원본)"으로 바꾼다.
+    /// 선택 인덱스와 내부 동작(원본 유지=재인코딩 강제 안 함)은 그대로 유지한다.</summary>
+    private static void SetKeepOriginalLabel(ComboBox combo, string sourceValue)
+    {
+        if (combo.Items.Count > 0 && combo.Items[0] is ComboBoxItem item)
+            item.Content = $"{sourceValue} (원본)";
+    }
+
+    /// <summary>"원본 유지"가 있는 콤보에 소스값을 표기.
+    /// 소스값이 프리셋과 일치하면 그 프리셋에 "(원본)"을 붙이고 선택(중복 방지),
+    /// 일치하는 프리셋이 없으면 index 0("원본 유지")을 "{label} (원본)"으로 바꾼다.</summary>
+    private static void ApplySourceValue(ComboBox combo, int presetIndex, string label, Action<int> selectMatch)
+    {
+        if (presetIndex > 0)
+        {
+            MarkSourceItem(combo, presetIndex);
+            selectMatch(presetIndex);
+        }
+        else
+        {
+            SetKeepOriginalLabel(combo, label);
+        }
+    }
+
+    // ── 소스값 → 프리셋 콤보 인덱스(index 0 = 원본 유지). 일치 프리셋이 없으면 -1. ──
+    private static int ChannelsPresetIndex(int channels) => channels switch
+    {
+        1 => 1, // 모노
+        2 => 2, // 스테레오
+        6 => 3, // 5.1
+        8 => 4, // 7.1
+        _ => -1,
+    };
+
+    private static int SampleRatePresetIndex(int hz) => hz switch
+    {
+        44100 => 1,
+        48000 => 2,
+        96000 => 3,
+        _ => -1,
+    };
+
+    private static int FrameRatePresetIndex(double fps)
+    {
+        for (int i = 1; i < FrameRatePresets.Length; i++)
+            if (Math.Abs(fps - FrameRatePresets[i]) < 0.05) return i;
+        return -1;
     }
 
     /// <summary>실제 선택된 파일/설정을 반영해 "저장될 파일명" 플레이스홀더를 동적으로 갱신.</summary>

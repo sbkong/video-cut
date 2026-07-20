@@ -1258,6 +1258,7 @@ public sealed partial class MainViewModel : ObservableObject
             5 => VideoCodec.Xvid,
             6 => VideoCodec.Mpeg4,
             7 => VideoCodec.MotionJpeg,
+            8 => VideoCodec.Copy, // 목록에 없는 소스 코덱 → "원본(복사)" 추가 항목
             _ => VideoCodec.H264,
         };
         s.VideoRateControl = VideoRateControlIndex == 1 ? RateControl.Cbr : RateControl.Vbr;
@@ -1291,6 +1292,7 @@ public sealed partial class MainViewModel : ObservableObject
             4 => AudioCodec.Vorbis,
             5 => AudioCodec.Flac,
             6 => AudioCodec.Pcm,
+            7 => AudioCodec.Copy, // 목록에 없는 소스 코덱 → "원본(복사)" 추가 항목
             _ => AudioCodec.Aac,
         };
         s.AudioRateControl = AudioRateControlIndex == 1 ? RateControl.Cbr : RateControl.Vbr;
