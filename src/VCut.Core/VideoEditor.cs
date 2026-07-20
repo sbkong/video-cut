@@ -66,9 +66,9 @@ public sealed class VideoEditor
                 var outputs = new List<string>();
                 var grandTotal = TimeSpan.FromSeconds(ranges.Sum(r => r.Duration.TotalSeconds));
                 double done = 0;
+                var ext = OutExt(input, mode, settings);
                 for (int i = 0; i < ranges.Count; i++)
                 {
-                    var ext = settings.ContainerExtension;
                     var outPath = ranges.Count == 1
                         ? OutputNaming.Derive(input, "cut", ext, outputDir)
                         : OutputNaming.DeriveIndexed(input, "cut", i + 1, ranges.Count, ext, outputDir);
@@ -87,7 +87,7 @@ public sealed class VideoEditor
             }
 
             // 여러 구간 합치기 → 임시 세그먼트 생성 후 concat.
-            var output = OutputNaming.Derive(input, "edited", settings.ContainerExtension, outputDir);
+            var output = OutputNaming.Derive(input, "edited", OutExt(input, mode, settings), outputDir);
             await TrimJoinAsync(input, ranges, mode, settings, output, progress, ct).ConfigureAwait(false);
             return EditResult.Ok(output, sw.Elapsed);
         }
@@ -140,7 +140,7 @@ public sealed class VideoEditor
         var segments = new List<string>();
         var grandTotal = TimeSpan.FromSeconds(ranges.Sum(r => r.Duration.TotalSeconds));
         double done = 0;
-        var ext = settings.ContainerExtension;
+        var ext = OutExt(input, mode, settings);
 
         for (int i = 0; i < ranges.Count; i++)
         {
@@ -237,7 +237,7 @@ public sealed class VideoEditor
             var outputs = new List<string>();
             var grandTotal = info.Duration;
             double doneSec = 0;
-            var ext = settings.ContainerExtension;
+            var ext = OutExt(input, mode, settings);
             for (int i = 0; i < ranges.Count; i++)
             {
                 var outPath = OutputNaming.DeriveIndexed(input, "part", i + 1, ranges.Count, ext, outputDir);
@@ -322,7 +322,7 @@ public sealed class VideoEditor
         }
         catch (FFmpegException ex) { return EditResult.Fail(ex.Message, ex.StdErr); }
 
-        var output = outputPath ?? OutputNaming.Derive(inputs[0], "merged", settings.ContainerExtension);
+        var output = outputPath ?? OutputNaming.Derive(inputs[0], "merged", OutExt(inputs[0], mode, settings));
 
         async Task MaybeWriteInfoAsync()
         {
@@ -378,12 +378,13 @@ public sealed class VideoEditor
             return EditResult.Fail("실행할 구간이 없습니다.");
 
         var sw = Stopwatch.StartNew();
-        var ext = settings.ContainerExtension;
+        // 합치기(join) 시 임시 세그먼트/최종 출력은 첫 클립 기준 컨테이너로 통일.
+        var ext = OutExt(clips[0].File, mode, settings);
         var grandTotal = TimeSpan.FromSeconds(clips.Sum(c => c.Range.Duration.TotalSeconds));
 
         try
         {
-            // 합치기 안 함 → 항목별 최종 파일.
+            // 합치기 안 함 → 항목별 최종 파일. 파일마다 원본 컨테이너를 유지(고속모드).
             if (!join || clips.Count == 1)
             {
                 var outputs = new List<string>();
@@ -391,13 +392,15 @@ public sealed class VideoEditor
                 for (int i = 0; i < clips.Count; i++)
                 {
                     var (file, range, speed) = clips[i];
+                    var clipSettings = ClipSettings(settings, speed);
+                    var outExt = OutExt(file, mode, clipSettings);
                     var outPath = clips.Count == 1
-                        ? OutputNaming.Derive(file, "cut", ext, outputDir)
-                        : OutputNaming.DeriveIndexed(file, "cut", i + 1, clips.Count, ext, outputDir);
+                        ? OutputNaming.Derive(file, "cut", outExt, outputDir)
+                        : OutputNaming.DeriveIndexed(file, "cut", i + 1, clips.Count, outExt, outputDir);
                     double span = range.Duration.TotalSeconds / Math.Max(grandTotal.TotalSeconds, 0.001);
                     var scaler = new ProgressScaler(progress, done, span, grandTotal, done * grandTotal.TotalSeconds);
                     done += span;
-                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, ClipSettings(settings, speed), outPath);
+                    var args = FFmpegArgsBuilder.BuildTranscode(file, range, mode, clipSettings, outPath);
                     await _runner.RunAsync(args, range.Duration, scaler, ct).ConfigureAwait(false);
                     outputs.Add(outPath);
                 }
@@ -441,6 +444,19 @@ public sealed class VideoEditor
         }
         catch (OperationCanceledException) { return EditResult.Fail("작업이 취소되었습니다.", elapsed: sw.Elapsed); }
         catch (FFmpegException ex) { return EditResult.Fail(ex.Message, ex.StdErr, sw.Elapsed); }
+    }
+
+    /// <summary>출력 확장자를 결정. 고속모드(스트림 복사)는 원본 컨테이너를 유지해야 한다
+    /// (예: AVI(msmpeg4v3)를 mp4로 넣으면 mux 실패 -22). 재인코딩이 필요하면 설정된 컨테이너 사용.
+    /// 판정 기준은 FFmpegArgsBuilder의 fast 판정과 동일하게 맞춘다.</summary>
+    private static string OutExt(string input, OutputMode mode, ConversionSettings settings)
+    {
+        if (mode == OutputMode.Fast && !settings.RequiresReencode)
+        {
+            var srcExt = Path.GetExtension(input);
+            if (!string.IsNullOrEmpty(srcExt)) return srcExt;
+        }
+        return settings.ContainerExtension;
     }
 
     /// <summary>클립별 배속을 반영한 설정 복제. 4.01배속 이상이면 오디오 자동 제거.</summary>

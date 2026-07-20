@@ -35,7 +35,7 @@ internal sealed class ConcatHelper
                 "-map", "0",
                 "-c", "copy",
             };
-            AddMoov(args, settings);
+            AddMoov(args, settings, output);
             args.Add(output);
             await _runner.RunAsync(args, totalDuration, progress, ct).ConfigureAwait(false);
         }
@@ -93,14 +93,15 @@ internal sealed class ConcatHelper
             args.Add("-b:a"); args.Add(settings.AudioBitrateKbps + "k");
         }
 
-        AddMoov(args, settings);
+        AddMoov(args, settings, output);
         args.Add(output);
         await _runner.RunAsync(args, totalDuration, progress, ct).ConfigureAwait(false);
     }
 
-    private static void AddMoov(List<string> args, ConversionSettings s)
+    private static void AddMoov(List<string> args, ConversionSettings s, string output)
     {
-        if (s.MoovAtFront && s.Container == ContainerFormat.Mp4)
+        // movflags는 MP4 계열에서만 유효 — 실제 출력 확장자로 판정(고속 합치기는 원본 컨테이너 유지).
+        if (s.MoovAtFront && FFmpegArgsBuilder.IsMp4Container(output))
         {
             args.Add("-movflags"); args.Add("+faststart");
         }

@@ -45,7 +45,7 @@ public static class FFmpegArgsBuilder
         else
             BuildReencode(args, settings);
 
-        AddMuxFlags(args, settings);
+        AddMuxFlags(args, settings, output);
         args.Add(output);
         return args;
     }
@@ -408,13 +408,23 @@ public static class FFmpegArgsBuilder
 
     // ───────────────────────── 먹싱 플래그 ─────────────────────────
 
-    private static void AddMuxFlags(List<string> args, ConversionSettings s)
+    private static void AddMuxFlags(List<string> args, ConversionSettings s, string output)
     {
-        // MP4 스트리밍 재생용 — MOOV를 앞으로(faststart).
-        if (s.MoovAtFront && s.Container == ContainerFormat.Mp4 && !s.ExtractAudioOnly)
+        // MP4 스트리밍 재생용 — MOOV를 앞으로(faststart). movflags는 MP4 계열에서만 유효하므로,
+        // 실제 출력 확장자로 판정한다(고속모드는 스트림 복사라 출력 컨테이너가 설정과 다를 수 있음).
+        if (s.MoovAtFront && !s.ExtractAudioOnly && IsMp4Container(output))
         {
             args.Add("-movflags"); args.Add("+faststart");
         }
+    }
+
+    /// <summary>MP4 계열(movflags 지원) 컨테이너인지 출력 확장자로 판정.</summary>
+    internal static bool IsMp4Container(string path)
+    {
+        var e = Path.GetExtension(path);
+        return e.Equals(".mp4", StringComparison.OrdinalIgnoreCase)
+            || e.Equals(".m4v", StringComparison.OrdinalIgnoreCase)
+            || e.Equals(".mov", StringComparison.OrdinalIgnoreCase);
     }
 
     // ───────────────────────── 헬퍼 ─────────────────────────
