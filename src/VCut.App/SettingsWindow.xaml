@@ -397,8 +397,10 @@
                                       DoubleTapped="OnKeymapRowDoubleTapped">
                                     <Grid.ContextFlyout>
                                         <MenuFlyout>
-                                            <MenuFlyoutItem Text="단축키 변경..." Tag="{x:Bind Id}" Click="OnKeymapContextChange"/>
-                                            <MenuFlyoutItem Text="기본값으로 재설정" Tag="{x:Bind Id}" Click="OnKeymapContextReset"/>
+                                            <MenuFlyoutItem Text="단축키 변경..." Tag="{x:Bind Id}" Click="OnKeymapContextChange"
+                                                            FontFamily="{StaticResource ContentControlThemeFontFamily}"/>
+                                            <MenuFlyoutItem Text="기본값으로 재설정" Tag="{x:Bind Id}" Click="OnKeymapContextReset"
+                                                            FontFamily="{StaticResource ContentControlThemeFontFamily}"/>
                                         </MenuFlyout>
                                     </Grid.ContextFlyout>
                                     <TextBlock Grid.Column="0" Text="{x:Bind Name}" FontSize="12.5"

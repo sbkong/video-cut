@@ -80,12 +80,16 @@
                                 <CheckBox Grid.Column="0" x:Name="CbSelectAll" Click="OnSelectAllClick"
                                           ToolTipService.ToolTip="전체 선택/해제"/>
                                 <TextBlock Grid.Column="1" x:Name="TxtColFilename" Text="파일명" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
+                                           FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Grid.Column="2" x:Name="TxtColVideo" Text="비디오 정보" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
+                                           FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Grid.Column="3" x:Name="TxtColAudio" Text="오디오 정보" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
+                                           FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Grid.Column="4" x:Name="TxtColSpeed" Text="배속" FontWeight="SemiBold" FontSize="{StaticResource FsCaption}"
+                                           FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                             </Grid>
 
@@ -101,12 +105,15 @@
                                             <CheckBox Grid.Column="0" IsChecked="{x:Bind IsPicked, Mode=TwoWay}"/>
                                             <TextBlock Grid.Column="1" Margin="{x:Bind CardIndent, Mode=OneWay}"
                                                        Text="{x:Bind PickLabel, Mode=OneWay}"
+                                                       FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="2" Text="{x:Bind VideoInfo}"
+                                                       FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                                        VerticalAlignment="Center" FontSize="{StaticResource FsCaption}"
                                                        Foreground="{StaticResource BcTextSecondaryBrush}"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="3" Text="{x:Bind AudioInfo}"
+                                                       FontFamily="{StaticResource ContentControlThemeFontFamily}"
                                                        VerticalAlignment="Center" FontSize="{StaticResource FsCaption}"
                                                        Foreground="{StaticResource BcTextSecondaryBrush}"
                                                        TextTrimming="CharacterEllipsis"/>

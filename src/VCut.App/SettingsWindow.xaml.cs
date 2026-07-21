@@ -78,7 +78,12 @@ public sealed partial class SettingsWindow : WindowBase
         CbDeinterlace.Content    = Loc.Get("play.deinterlace");
         CbHwRenderer.Content     = Loc.Get("play.hw_renderer");
         CbHwDecoder.Content      = Loc.Get("play.hw_decoder");
-        NumSeekSeconds.Header    = Loc.Get("play.seek_seconds");
+        // NumberBox의 문자열 Header는 앱 폰트를 따르지 않으므로, 폰트를 지정한 TextBlock으로 설정.
+        NumSeekSeconds.Header    = new TextBlock
+        {
+            Text = Loc.Get("play.seek_seconds"),
+            FontFamily = FontService.Resolve(SettingsStore.Current),
+        };
         TxtPlayNote.Text         = Loc.Get("play.note");
 
         // Panel: files

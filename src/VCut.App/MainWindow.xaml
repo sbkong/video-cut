@@ -27,18 +27,22 @@
                 <FontIcon Glyph="&#xE700;" FontSize="{StaticResource FsSubtitle}" Foreground="{StaticResource BcTextBrush}" />
                 <Button.Flyout>
                     <MenuFlyout Placement="Bottom">
-                        <MenuFlyoutItem x:Name="MenuSettings" Text="환경 설정" Click="OnOpenSettings">
+                        <MenuFlyoutItem x:Name="MenuSettings" Text="환경 설정" Click="OnOpenSettings"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="MenuAbout" Text="v-cut 정보" Click="OnRailInfo">
+                        <MenuFlyoutItem x:Name="MenuAbout" Text="v-cut 정보" Click="OnRailInfo"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE946;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="MenuRestart" Text="재시작" Click="OnRestart">
+                        <MenuFlyoutItem x:Name="MenuRestart" Text="재시작" Click="OnRestart"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="MenuExit" Text="종료" Click="OnExit">
+                        <MenuFlyoutItem x:Name="MenuExit" Text="종료" Click="OnExit"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                     </MenuFlyout>
@@ -57,18 +61,22 @@
                 </StackPanel>
                 <Button.Flyout>
                     <MenuFlyout x:Name="ProjectFlyout" Placement="Bottom" Opening="OnProjectFlyoutOpening">
-                        <MenuFlyoutItem x:Name="MenuNewProject" Text="새 프로젝트" Command="{x:Bind VM.NewProjectCommand}">
+                        <MenuFlyoutItem x:Name="MenuNewProject" Text="새 프로젝트" Command="{x:Bind VM.NewProjectCommand}"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="MenuOpenProject" Text="열기..." Command="{x:Bind VM.OpenProjectCommand}">
+                        <MenuFlyoutItem x:Name="MenuOpenProject" Text="열기..." Command="{x:Bind VM.OpenProjectCommand}"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8DA;" /></MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
                         <MenuFlyoutSeparator />
-                        <MenuFlyoutItem x:Name="MenuSave" Text="저장" Command="{x:Bind VM.SaveProjectCommand}">
+                        <MenuFlyoutItem x:Name="MenuSave" Text="저장" Command="{x:Bind VM.SaveProjectCommand}"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74E;" /></MenuFlyoutItem.Icon>
                             <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
                         </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="MenuSaveAs" Text="다른 이름으로 저장" Command="{x:Bind VM.SaveProjectAsCommand}">
+                        <MenuFlyoutItem x:Name="MenuSaveAs" Text="다른 이름으로 저장" Command="{x:Bind VM.SaveProjectAsCommand}"
+                                        FontFamily="{StaticResource ContentControlThemeFontFamily}">
                             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE792;" /></MenuFlyoutItem.Icon>
                             <MenuFlyoutItem.KeyboardAcceleratorTextOverride>Ctrl+Shift+S</MenuFlyoutItem.KeyboardAcceleratorTextOverride>
                         </MenuFlyoutItem>
@@ -326,12 +334,16 @@
                             </Border>
                             <StackPanel VerticalAlignment="Center" Spacing="5">
                                 <StackPanel Orientation="Horizontal" Spacing="0">
+                                    <!-- 로고는 브랜드 마크이므로 사용자 폰트 설정과 무관하게 항상 SegUIVar.ttf#Segoe UI Variable Small Light 고정 -->
                                     <TextBlock Text="v" FontSize="50" FontWeight="Bold"
+                                               FontFamily="ms-appx:///Assets/Fonts/SegUIVar.ttf#Segoe UI Variable Small Light"
                                                Foreground="{StaticResource BcAccentBrush}" LineHeight="54" />
                                     <TextBlock Text="-cut" FontSize="50" FontWeight="Bold"
+                                               FontFamily="ms-appx:///Assets/Fonts/SegUIVar.ttf#Segoe UI Variable Small Light"
                                                Foreground="{StaticResource BcTextBrush}" LineHeight="54" />
                                 </StackPanel>
                                 <TextBlock x:Name="HomeTagline" Text="빠르고 간단한 영상 편집 도구"
+                                           FontFamily="{ThemeResource ContentControlThemeFontFamily}"
                                            FontSize="{StaticResource FsBody}" CharacterSpacing="30"
                                            Foreground="{StaticResource BcTextSecondaryBrush}" />
                             </StackPanel>
@@ -359,7 +371,9 @@
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,6">
                         <Border Height="1" Background="{StaticResource BcDividerBrush}" />
-                        <TextBlock x:Name="RecentTitle" Text="최근 프로젝트" FontSize="{StaticResource FsCaption}" FontWeight="SemiBold"
+                        <TextBlock x:Name="RecentTitle" Text="최근 프로젝트"
+                                   FontFamily="{ThemeResource ContentControlThemeFontFamily}"
+                                   FontSize="{StaticResource FsCaption}" FontWeight="SemiBold"
                                    Foreground="{StaticResource BcTextSecondaryBrush}" />
                     </StackPanel>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

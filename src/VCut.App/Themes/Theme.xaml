@@ -61,6 +61,14 @@
     <x:Double x:Key="FsSubtitle">15</x:Double>
     <x:Double x:Key="FsTitle">16</x:Double>
 
+    <!-- ════════ 전역 폰트 통일 ════════
+         순정 TextBlock은 앱 폰트(ContentControlThemeFontFamily)를 기본으로 따르지 않고,
+         루트에 건 FontFamily 상속도 TextBlock까진 닿지 않는다. 그래서 암시적 스타일로 모든
+         TextBlock이 앱 폰트를 쓰도록 통일한다(개별 FontSize/FontWeight 등 지역 설정은 그대로 우선). -->
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{ThemeResource ContentControlThemeFontFamily}" />
+    </Style>
+
     <!-- 시스템 액센트(AccentButton 등)를 통일 -->
     <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{StaticResource BcAccent}" />
     <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{StaticResource BcAccentHover}" />
